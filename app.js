@@ -60,6 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initializeForms();
   initializeFilters();
   initializeMetrics();
+  initializeSettingsButton();
   renderDashboard();
   updateAllViews();
 
@@ -174,6 +175,18 @@ function switchView(viewName) {
     case "settings":
       renderSettings();
       break;
+  }
+
+  // Deactivate all nav items since settings is now a floating button
+  if (viewName === "settings") {
+    document.querySelectorAll(".nav-item").forEach(item => item.classList.remove("active"));
+  }
+}
+
+function initializeSettingsButton() {
+  const settingsBtn = document.getElementById("openSettingsBtn");
+  if (settingsBtn) {
+    settingsBtn.addEventListener("click", () => switchView("settings"));
   }
 }
 

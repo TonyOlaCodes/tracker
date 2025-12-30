@@ -87,7 +87,7 @@ body {
 /* ============================================
    THEME TOGGLE
    ============================================ */
-.theme-toggle {
+.theme-toggle, .settings-floating-btn {
   position: fixed;
   top: var(--spacing-lg);
   right: var(--spacing-lg);
@@ -103,14 +103,16 @@ body {
   justify-content: center;
   transition: all var(--transition-base);
   box-shadow: var(--shadow-md);
+  color: var(--text-secondary);
 }
 
-.theme-toggle:hover {
+.theme-toggle:hover, .settings-floating-btn:hover {
   transform: scale(1.05);
   box-shadow: var(--shadow-lg);
+  color: var(--accent-primary);
 }
 
-.theme-toggle:active {
+.theme-toggle:active, .settings-floating-btn:active {
   transform: scale(0.95);
 }
 
