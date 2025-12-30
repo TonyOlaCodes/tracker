@@ -72,7 +72,7 @@
               d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
             ></path>
           </svg>
-          <span>Tasks</span>
+          <span>To-Do List</span>
         </button>
         <button class="nav-item" data-view="spending">
           <svg
@@ -206,7 +206,7 @@
             </div>
             <div class="stat-content">
               <h3 id="pendingTasksCount">0</h3>
-              <p>Pending Tasks</p>
+              <p>Pending To-Dos</p>
             </div>
           </div>
           <div class="stat-card">
@@ -281,7 +281,7 @@
                 <line x1="12" y1="8" x2="12" y2="16"></line>
                 <line x1="8" y1="12" x2="16" y2="12"></line>
               </svg>
-              Add Task
+              Add To-Do
             </button>
             <button class="quick-action-btn" id="quickAddExpense">
               <svg
@@ -337,10 +337,10 @@
         <div id="goalsList" class="goals-list"></div>
       </div>
 
-      <!-- Tasks View -->
+      <!-- To-Do List View -->
       <div id="tasks" class="view">
         <header class="view-header">
-          <h1>Tasks</h1>
+          <h1>To-Do List</h1>
           <button class="btn-primary" id="addTaskBtn">
             <svg
               width="16"
@@ -353,16 +353,26 @@
               <line x1="12" y1="5" x2="12" y2="19"></line>
               <line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
-            New Task
+            New To-Do
           </button>
         </header>
 
-        <div class="filter-tabs">
-          <button class="filter-tab active" data-filter="pending">
-            Pending
-          </button>
-          <button class="filter-tab" data-filter="completed">Completed</button>
-          <button class="filter-tab" data-filter="all">All</button>
+        <div class="filter-bar">
+          <div class="filter-tabs">
+            <button class="filter-tab active" data-filter="pending">Pending</button>
+            <button class="filter-tab" data-filter="completed">Completed</button>
+            <button class="filter-tab" data-filter="all">All</button>
+          </div>
+          
+          <div class="filter-actions">
+            <select id="todoCategoryFilter" class="btn-secondary filter-select">
+              <option value="all">All Categories</option>
+            </select>
+            <select id="todoSortSelect" class="btn-secondary filter-select">
+              <option value="dueDate">Sort by Due Date</option>
+              <option value="createdAt">Sort by Created Date</option>
+            </select>
+          </div>
         </div>
 
         <div id="tasksList" class="tasks-list"></div>
@@ -683,16 +693,16 @@
       </div>
     </div>
 
-    <!-- Task Modal -->
+    <!-- To-Do Modal -->
     <div id="taskModal" class="modal">
       <div class="modal-content">
         <div class="modal-header">
-          <h2>New Task</h2>
+          <h2 id="taskModalTitle">New To-Do</h2>
           <button class="modal-close" id="closeTaskModal">&times;</button>
         </div>
         <form id="taskForm">
           <div class="form-group">
-            <label for="taskName">Task Name</label>
+            <label for="taskName">To-Do Name</label>
             <input
               type="text"
               id="taskName"
@@ -701,28 +711,55 @@
             />
           </div>
           <div class="form-group">
-            <label for="taskCategory">Category (Optional)</label>
-            <input
-              type="text"
-              id="taskCategory"
-              placeholder="e.g., Work, Personal, Health"
-            />
+            <label for="taskDescription">Description (Optional)</label>
+            <textarea id="taskDescription" placeholder="Add more details..."></textarea>
           </div>
           <div class="form-group">
-            <label for="taskDueDate">Due Date (Optional)</label>
-            <input type="date" id="taskDueDate" />
+            <label for="taskCategorySelect">Category</label>
+            <select id="taskCategorySelect" required>
+              <option value="Work">💼 Work</option>
+              <option value="Personal">🏠 Personal</option>
+              <option value="Health">🏥 Health</option>
+              <option value="Grocery">🛒 Grocery</option>
+              <option value="custom">+ Custom Category</option>
+            </select>
           </div>
-          <div class="form-group">
-            <label class="checkbox-label">
-              <input type="checkbox" id="taskRepeating" />
-              <span>Repeat Daily</span>
-            </label>
+          
+          <div id="customCategorySection" style="display: none;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="customCatName">Name</label>
+                <input type="text" id="customCatName" placeholder="Category Name">
+              </div>
+              <div class="form-group">
+                <label for="customCatEmoji">Emoji</label>
+                <input type="text" id="customCatEmoji" placeholder="📝">
+              </div>
+              <div class="form-group">
+                <label for="customCatColor">Color</label>
+                <input type="color" id="customCatColor" value="#6366f1">
+              </div>
+            </div>
           </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="taskDueDate">Due Date (Optional)</label>
+              <input type="date" id="taskDueDate" />
+            </div>
+            <div class="form-group">
+              <label class="checkbox-label" style="margin-top: 35px;">
+                <input type="checkbox" id="taskRepeating" />
+                <span>Repeat Daily</span>
+              </label>
+            </div>
+          </div>
+
           <div class="modal-actions">
             <button type="button" class="btn-secondary" id="cancelTask">
               Cancel
             </button>
-            <button type="submit" class="btn-primary">Add Task</button>
+            <button type="submit" class="btn-primary" id="saveTaskBtn">Add To-Do</button>
           </div>
         </form>
       </div>

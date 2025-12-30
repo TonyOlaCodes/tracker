@@ -15,6 +15,14 @@ const AppState = {
   currentFilter: {
     goals: "all",
     tasks: "pending",
+    taskCategory: "all",
+    taskSort: "dueDate",
+  },
+  taskCategories: {
+    Work: { color: "#6366f1", emoji: "💼" },
+    Personal: { color: "#10b981", emoji: "🏠" },
+    Health: { color: "#f59e0b", emoji: "🏥" },
+    Grocery: { color: "#ec4899", emoji: "🛒" },
   },
   categoryBudgets: {
     food: 500,
@@ -74,8 +82,11 @@ function loadData() {
   const savedMetrics = localStorage.getItem("metrics");
   const savedMetricTypes = localStorage.getItem("metricTypes");
 
+  const savedTaskCategories = localStorage.getItem("taskCategories");
+
   if (savedGoals) AppState.goals = JSON.parse(savedGoals);
   if (savedTasks) AppState.tasks = JSON.parse(savedTasks);
+  if (savedTaskCategories) AppState.taskCategories = JSON.parse(savedTaskCategories);
   if (savedExpenses) AppState.expenses = JSON.parse(savedExpenses);
   if (savedIncome) AppState.income = JSON.parse(savedIncome);
   if (savedBudgets) AppState.categoryBudgets = JSON.parse(savedBudgets);
@@ -99,6 +110,7 @@ function saveData() {
   localStorage.setItem("settings", JSON.stringify(AppState.settings));
   localStorage.setItem("metrics", JSON.stringify(AppState.metrics));
   localStorage.setItem("metricTypes", JSON.stringify(AppState.metricTypes));
+  localStorage.setItem("taskCategories", JSON.stringify(AppState.taskCategories));
 }
 
 // ============================================
@@ -185,9 +197,15 @@ function initializeModals() {
   const closeTaskModal = document.getElementById("closeTaskModal");
   const cancelTask = document.getElementById("cancelTask");
 
-  addTaskBtn.addEventListener("click", () => openModal("taskModal"));
+  addTaskBtn.addEventListener("click", () => openTaskModal());
   closeTaskModal.addEventListener("click", () => closeModal("taskModal"));
   cancelTask.addEventListener("click", () => closeModal("taskModal"));
+
+  // Custom Category toggle
+  document.getElementById("taskCategorySelect").addEventListener("change", (e) => {
+    const customSection = document.getElementById("customCategorySection");
+    customSection.style.display = e.target.value === "custom" ? "block" : "none";
+  });
 
   // Expense Modal
   const expenseModal = document.getElementById("expenseModal");
@@ -316,12 +334,63 @@ function initializeQuickActions() {
   });
 
   document.getElementById("quickAddTask").addEventListener("click", () => {
-    openModal("taskModal");
+    openTaskModal();
   });
 
   document.getElementById("quickAddExpense").addEventListener("click", () => {
     openExpenseModal();
   });
+}
+
+function openTaskModal(taskId = null) {
+  const form = document.getElementById("taskForm");
+  const title = document.getElementById("taskModalTitle");
+  const saveBtn = document.getElementById("saveTaskBtn");
+  const catSelect = document.getElementById("taskCategorySelect");
+  const customSection = document.getElementById("customCategorySection");
+  
+  updateTaskCategorySelect();
+
+  if (taskId) {
+    const task = AppState.tasks.find((t) => t.id === taskId);
+    title.textContent = "Edit To-Do";
+    saveBtn.textContent = "Save Changes";
+    document.getElementById("taskName").value = task.name;
+    document.getElementById("taskDescription").value = task.description || "";
+    catSelect.value = task.category;
+    document.getElementById("taskDueDate").value = task.dueDate || "";
+    document.getElementById("taskRepeating").checked = task.repeating || false;
+    form.dataset.editId = taskId;
+    customSection.style.display = "none";
+  } else {
+    title.textContent = "New To-Do";
+    saveBtn.textContent = "Add To-Do";
+    form.reset();
+    delete form.dataset.editId;
+    customSection.style.display = "none";
+  }
+
+  openModal("taskModal");
+}
+
+function updateTaskCategorySelect() {
+  const select = document.getElementById("taskCategorySelect");
+  const currentValue = select.value;
+  
+  select.innerHTML = "";
+  Object.keys(AppState.taskCategories).forEach(cat => {
+    const opt = document.createElement("option");
+    opt.value = cat;
+    opt.textContent = `${AppState.taskCategories[cat].emoji} ${cat}`;
+    select.appendChild(opt);
+  });
+  
+  const customOpt = document.createElement("option");
+  customOpt.value = "custom";
+  customOpt.textContent = "+ Custom Category";
+  select.appendChild(customOpt);
+  
+  if (currentValue) select.value = currentValue;
 }
 
 // ============================================
@@ -408,20 +477,50 @@ function handleGoalSubmit() {
 }
 
 function handleTaskSubmit() {
+  const form = document.getElementById("taskForm");
+  const editId = form.dataset.editId;
+  const catSelect = document.getElementById("taskCategorySelect");
+  
+  let category = catSelect.value;
+  
+  if (category === "custom") {
+    const name = document.getElementById("customCatName").value;
+    const emoji = document.getElementById("customCatEmoji").value || "📝";
+    const color = document.getElementById("customCatColor").value;
+    
+    if (name) {
+      AppState.taskCategories[name] = { color, emoji };
+      category = name;
+      updateTodoCategoryFilter();
+    } else {
+      category = "Other";
+      if (!AppState.taskCategories["Other"]) {
+        AppState.taskCategories["Other"] = { color: "#94a3b8", emoji: "📝" };
+      }
+    }
+  }
+
   const taskData = {
-    id: Date.now().toString(),
+    id: editId || Date.now().toString(),
     name: document.getElementById("taskName").value,
-    category: document.getElementById("taskCategory").value,
+    description: document.getElementById("taskDescription").value,
+    category: category,
     dueDate: document.getElementById("taskDueDate").value,
     repeating: document.getElementById("taskRepeating").checked,
-    completed: false,
-    createdAt: new Date().toISOString(),
+    completed: editId ? AppState.tasks.find(t => t.id === editId).completed : false,
+    createdAt: editId ? AppState.tasks.find(t => t.id === editId).createdAt : new Date().toISOString(),
   };
 
-  AppState.tasks.push(taskData);
+  if (editId) {
+    const index = AppState.tasks.findIndex((t) => t.id === editId);
+    AppState.tasks[index] = taskData;
+  } else {
+    AppState.tasks.push(taskData);
+  }
+
   saveData();
   closeModal("taskModal");
-  document.getElementById("taskForm").reset();
+  form.reset();
   updateAllViews();
 }
 
@@ -827,6 +926,38 @@ function initializeFilters() {
       }
     });
   });
+
+  // To-Do Category Filter
+  const todoCatFilter = document.getElementById("todoCategoryFilter");
+  todoCatFilter.addEventListener("change", (e) => {
+    AppState.currentFilter.taskCategory = e.target.value;
+    renderTasks();
+  });
+
+  // To-Do Sort
+  const todoSort = document.getElementById("todoSortSelect");
+  todoSort.addEventListener("change", (e) => {
+    AppState.currentFilter.taskSort = e.target.value;
+    renderTasks();
+  });
+  
+  updateTodoCategoryFilter();
+}
+
+function updateTodoCategoryFilter() {
+  const select = document.getElementById("todoCategoryFilter");
+  if (!select) return;
+  const current = select.value || "all";
+  
+  select.innerHTML = '<option value="all">All Categories</option>';
+  Object.keys(AppState.taskCategories).forEach(cat => {
+    const opt = document.createElement("option");
+    opt.value = cat;
+    opt.textContent = `${AppState.taskCategories[cat].emoji} ${cat}`;
+    select.appendChild(opt);
+  });
+  
+  select.value = current;
 }
 
 // ============================================
@@ -1055,9 +1186,11 @@ function toggleTask(taskId) {
 }
 
 function deleteTask(taskId) {
-  AppState.tasks = AppState.tasks.filter((t) => t.id !== taskId);
-  saveData();
-  updateAllViews();
+  if (confirm("Are you sure you want to delete this to-do?")) {
+    AppState.tasks = AppState.tasks.filter((t) => t.id !== taskId);
+    saveData();
+    updateAllViews();
+  }
 }
 
 // ============================================
@@ -1410,21 +1543,31 @@ function renderGoals() {
 
 function renderTasks() {
   const container = document.getElementById("tasksList");
-  let tasks = AppState.tasks;
+  let tasks = [...AppState.tasks];
 
-  // Apply filter
+  // Apply Status filter
   if (AppState.currentFilter.tasks === "pending") {
     tasks = tasks.filter((t) => !t.completed);
   } else if (AppState.currentFilter.tasks === "completed") {
     tasks = tasks.filter((t) => t.completed);
   }
+  
+  // Apply Category filter
+  if (AppState.currentFilter.taskCategory !== "all") {
+    tasks = tasks.filter(t => t.category === AppState.currentFilter.taskCategory);
+  }
 
-  // Sort by due date
+  // Sort
+  const sortProp = AppState.currentFilter.taskSort;
   tasks.sort((a, b) => {
-    if (!a.dueDate && !b.dueDate) return 0;
-    if (!a.dueDate) return 1;
-    if (!b.dueDate) return -1;
-    return new Date(a.dueDate) - new Date(b.dueDate);
+    if (sortProp === "dueDate") {
+      if (!a.dueDate && !b.dueDate) return 0;
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      return new Date(a.dueDate) - new Date(b.dueDate);
+    } else {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    }
   });
 
   if (tasks.length === 0) {
@@ -1434,8 +1577,8 @@ function renderTasks() {
                     <polyline points="9 11 12 14 22 4"></polyline>
                     <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
                 </svg>
-                <h3>No tasks found</h3>
-                <p>Add a new task to get organized</p>
+                <h3>No to-dos found</h3>
+                <p>Add a new to-do to get organized</p>
             </div>
         `;
     return;
@@ -1443,31 +1586,26 @@ function renderTasks() {
 
   container.innerHTML = tasks
     .map(
-      (task) => `
-        <div class="task-card ${task.completed ? "completed" : ""}">
+      (task) => {
+        const cat = AppState.taskCategories[task.category] || { color: "#94a3b8", emoji: "📝" };
+        return `
+        <div class="task-card ${task.completed ? "completed" : ""}" onclick="openTaskModal('${task.id}')">
             <div class="task-checkbox ${
               task.completed ? "checked" : ""
-            }" onclick="toggleTask('${task.id}')">
+            }" onclick="event.stopPropagation(); toggleTask('${task.id}')">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                     <polyline points="20 6 9 17 4 12"></polyline>
                 </svg>
             </div>
             <div class="task-content">
-                <div class="task-name">${task.name}</div>
+                <div class="task-name">
+                  <span class="category-tag" style="background: ${cat.color}">
+                    ${cat.emoji} ${task.category}
+                  </span>
+                  ${task.name}
+                </div>
+                ${task.description ? `<span class="task-description-text">${task.description}</span>` : ""}
                 <div class="task-meta">
-                    ${
-                      task.category
-                        ? `
-                        <span class="task-category">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
-                                <line x1="7" y1="7" x2="7.01" y2="7"></line>
-                            </svg>
-                            ${task.category}
-                        </span>
-                    `
-                        : ""
-                    }
                     ${
                       task.dueDate
                         ? `
@@ -1498,14 +1636,15 @@ function renderTasks() {
                     }
                 </div>
             </div>
-            <button class="task-delete" onclick="deleteTask('${task.id}')">
+            <button class="task-delete" onclick="event.stopPropagation(); deleteTask('${task.id}')">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3 6 5 6 21 6"></polyline>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                 </svg>
             </button>
         </div>
-    `
+    `;
+      }
     )
     .join("");
 }
