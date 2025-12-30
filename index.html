@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Life Tracker - Personal Goals & Habits</title>
+    <meta
+      name="description"
+      content="A minimal, all-in-one personal tracker for managing goals, habits, tasks, and spending with beautiful insights and progress tracking."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="index.css" />
+    <link rel="manifest" href="manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Life Tracker" />
+  </head>
+  <body>
+    <!-- Theme Toggle -->
+    <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">
+      <svg
+        class="sun-icon"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <circle cx="12" cy="12" r="5"></circle>
+        <line x1="12" y1="1" x2="12" y2="3"></line>
+        <line x1="12" y1="21" x2="12" y2="23"></line>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+        <line x1="1" y1="12" x2="3" y2="12"></line>
+        <line x1="21" y1="12" x2="23" y2="12"></line>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+      </svg>
+      <svg
+        class="moon-icon"
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+      </svg>
+    </button>
+
+    <!-- Main Container -->
+    <div class="container">
+      <!-- Navigation -->
+      <nav class="nav">
+        <button class="nav-item active" data-view="dashboard">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-item" data-view="goals">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <circle cx="12" cy="12" r="6"></circle>
+            <circle cx="12" cy="12" r="2"></circle>
+          </svg>
+          <span>Goals</span>
+        </button>
+        <button class="nav-item" data-view="tasks">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <polyline points="9 11 12 14 22 4"></polyline>
+            <path
+              d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+            ></path>
+          </svg>
+          <span>Tasks</span>
+        </button>
+        <button class="nav-item" data-view="spending">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+          <span>Spending</span>
+        </button>
+        <button class="nav-item" data-view="metrics">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path d="M3 3v18h18"></path>
+            <path d="M18 17V9"></path>
+            <path d="M13 17V5"></path>
+            <path d="M8 17v-3"></path>
+          </svg>
+          <span>Metrics</span>
+        </button>
+        <button class="nav-item" data-view="insights">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="18" y1="20" x2="18" y2="10"></line>
+            <line x1="12" y1="20" x2="12" y2="4"></line>
+            <line x1="6" y1="20" x2="6" y2="14"></line>
+          </svg>
+          <span>Insights</span>
+        </button>
+      </nav>
+
+      <!-- Dashboard View -->
+      <div id="dashboard" class="view active">
+        <header class="view-header">
+          <h1>Dashboard</h1>
+          <p class="date-display" id="currentDate"></p>
+        </header>
+
+        <div class="year-progress-card">
+          <div class="year-progress-content">
+            <div class="year-progress-ring">
+              <svg width="120" height="120">
+                <circle cx="60" cy="60" r="54" class="ring-bg"></circle>
+                <circle
+                  cx="60"
+                  cy="60"
+                  r="54"
+                  class="ring-progress"
+                  id="yearProgressRing"
+                ></circle>
+              </svg>
+              <div class="ring-text">
+                <span class="ring-percentage" id="yearProgressPercent">0%</span>
+                <span class="ring-label">of 2025</span>
+              </div>
+            </div>
+            <div class="year-progress-info">
+              <h3>Year Progress</h3>
+              <p id="yearProgressDays">0 days completed</p>
+              <p id="yearProgressRemaining">0 days remaining</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon goals-icon">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="6"></circle>
+              </svg>
+            </div>
+            <div class="stat-content">
+              <h3 id="activeGoalsCount">0</h3>
+              <p>Active Goals</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon tasks-icon">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <polyline points="9 11 12 14 22 4"></polyline>
+                <path
+                  d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+                ></path>
+              </svg>
+            </div>
+            <div class="stat-content">
+              <h3 id="pendingTasksCount">0</h3>
+              <p>Pending Tasks</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon spending-icon">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path
+                  d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
+                ></path>
+              </svg>
+            </div>
+            <div class="stat-content">
+              <h3 id="todaySpending">$0</h3>
+              <p>Today's Spending</p>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon streak-icon">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+              </svg>
+            </div>
+            <div class="stat-content">
+              <h3 id="bestStreak">0</h3>
+              <p>Best Streak</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="quick-add-section">
+          <h2>Quick Actions</h2>
+          <div class="quick-actions">
+            <button class="quick-action-btn" id="quickAddGoal">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+              </svg>
+              Add Goal
+            </button>
+            <button class="quick-action-btn" id="quickAddTask">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+              </svg>
+              Add Task
+            </button>
+            <button class="quick-action-btn" id="quickAddExpense">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+              </svg>
+              Add Expense
+            </button>
+          </div>
+        </div>
+
+        <div class="today-goals-section">
+          <h2>Today's Goals</h2>
+          <div id="todayGoalsList" class="today-goals-list"></div>
+        </div>
+      </div>
+
+      <!-- Goals View -->
+      <div id="goals" class="view">
+        <header class="view-header">
+          <h1>Goals</h1>
+          <button class="btn-primary" id="addGoalBtn">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            New Goal
+          </button>
+        </header>
+
+        <div class="filter-tabs">
+          <button class="filter-tab active" data-filter="all">All</button>
+          <button class="filter-tab" data-filter="daily">Daily</button>
+          <button class="filter-tab" data-filter="weekly">Weekly</button>
+          <button class="filter-tab" data-filter="monthly">Monthly</button>
+        </div>
+
+        <div id="goalsList" class="goals-list"></div>
+      </div>
+
+      <!-- Tasks View -->
+      <div id="tasks" class="view">
+        <header class="view-header">
+          <h1>Tasks</h1>
+          <button class="btn-primary" id="addTaskBtn">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            New Task
+          </button>
+        </header>
+
+        <div class="filter-tabs">
+          <button class="filter-tab active" data-filter="pending">
+            Pending
+          </button>
+          <button class="filter-tab" data-filter="completed">Completed</button>
+          <button class="filter-tab" data-filter="all">All</button>
+        </div>
+
+        <div id="tasksList" class="tasks-list"></div>
+      </div>
+
+      <!-- Spending View -->
+      <div id="spending" class="view">
+        <header class="view-header">
+          <h1>Spending</h1>
+          <button class="btn-primary" id="addExpenseBtn">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add Expense
+          </button>
+        </header>
+
+        <div class="spending-summary">
+          <div class="spending-card">
+            <h3>Today</h3>
+            <p class="spending-amount" id="spendingToday">$0.00</p>
+          </div>
+          <div class="spending-card">
+            <h3>This Week</h3>
+            <p class="spending-amount" id="spendingWeek">$0.00</p>
+          </div>
+          <div class="spending-card">
+            <h3>This Month</h3>
+            <p class="spending-amount" id="spendingMonth">$0.00</p>
+          </div>
+          <div class="spending-card highlight">
+            <h3>No-Spend Days</h3>
+            <p class="spending-amount" id="noSpendDays">0</p>
+          </div>
+        </div>
+
+        <div class="category-budgets">
+          <h2>Category Budgets</h2>
+          <div id="categoryBudgetsList" class="category-list"></div>
+        </div>
+
+        <div class="expenses-section">
+          <h2>Recent Expenses</h2>
+          <div id="expensesList" class="expenses-list"></div>
+        </div>
+      </div>
+
+      <!-- Metrics View -->
+      <div id="metrics" class="view">
+        <header class="view-header">
+          <h1>Metrics</h1>
+          <button class="btn-primary" id="addMetricBtn">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Log Entry
+          </button>
+        </header>
+
+        <div class="metrics-selector">
+          <label for="metricTypeSelect">Select Metric:</label>
+          <select id="metricTypeSelect" class="metric-select">
+            <option value="weight">Weight</option>
+            <option value="bodyFat">Body Fat %</option>
+            <option value="sleep">Sleep Hours</option>
+            <option value="mood">Mood (1-10)</option>
+            <option value="energy">Energy Level (1-10)</option>
+            <option value="steps">Steps</option>
+            <option value="waterIntake">Water Intake (L)</option>
+            <option value="calories">Calories</option>
+          </select>
+          <button class="btn-secondary" id="addMetricTypeBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Add Custom Metric
+          </button>
+        </div>
+
+        <div class="metrics-stats-grid">
+          <div class="metric-stat-card">
+            <h4>Current</h4>
+            <p class="metric-stat-value" id="currentMetricValue">--</p>
+          </div>
+          <div class="metric-stat-card">
+            <h4>Average (30d)</h4>
+            <p class="metric-stat-value" id="avgMetricValue">--</p>
+          </div>
+          <div class="metric-stat-card">
+            <h4>Highest</h4>
+            <p class="metric-stat-value" id="highMetricValue">--</p>
+          </div>
+          <div class="metric-stat-card">
+            <h4>Lowest</h4>
+            <p class="metric-stat-value" id="lowMetricValue">--</p>
+          </div>
+          <div class="metric-stat-card">
+            <h4>Change (7d)</h4>
+            <p class="metric-stat-value" id="changeMetricValue">--</p>
+          </div>
+          <div class="metric-stat-card">
+            <h4>Total Entries</h4>
+            <p class="metric-stat-value" id="totalMetricEntries">0</p>
+          </div>
+        </div>
+
+        <div class="metric-chart-section">
+          <div class="chart-controls">
+            <h3>Progress Chart</h3>
+            <div class="timeframe-buttons">
+              <button class="timeframe-btn active" data-timeframe="7">7 Days</button>
+              <button class="timeframe-btn" data-timeframe="30">30 Days</button>
+              <button class="timeframe-btn" data-timeframe="90">90 Days</button>
+              <button class="timeframe-btn" data-timeframe="365">1 Year</button>
+              <button class="timeframe-btn" data-timeframe="all">All Time</button>
+            </div>
+          </div>
+          <canvas id="metricChart"></canvas>
+        </div>
+
+        <div class="metric-entries-section">
+          <h3>Recent Entries</h3>
+          <div id="metricEntriesList" class="metric-entries-list"></div>
+        </div>
+      </div>
+
+      <!-- Insights View -->
+      <div id="insights" class="view">
+        <header class="view-header">
+          <h1>Insights</h1>
+          <button class="btn-secondary" id="exportDataBtn">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Export Data
+          </button>
+        </header>
+
+        <div class="insights-grid">
+          <div class="insight-card">
+            <h3>Weekly Summary</h3>
+            <div id="weeklySummary" class="weekly-summary"></div>
+          </div>
+
+          <div class="insight-card">
+            <h3>Activity Heatmap</h3>
+            <div id="activityHeatmap" class="heatmap"></div>
+          </div>
+
+          <div class="insight-card full-width">
+            <h3>Progress Over Time</h3>
+            <canvas id="progressChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Goal Modal -->
+    <div id="goalModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="goalModalTitle">New Goal</h2>
+          <button class="modal-close" id="closeGoalModal">&times;</button>
+        </div>
+        <form id="goalForm">
+          <div class="form-group">
+            <label for="goalName">Goal Name</label>
+            <input
+              type="text"
+              id="goalName"
+              required
+              placeholder="e.g., Drink 3L water"
+            />
+          </div>
+          <div class="form-group">
+            <label for="goalType">Goal Type</label>
+            <select id="goalType" required>
+              <option value="binary">Binary (Done / Not Done)</option>
+              <option value="quantitative">
+                Quantitative (Track Progress)
+              </option>
+            </select>
+          </div>
+          <div class="form-group" id="targetGroup" style="display: none">
+            <label for="goalTarget">Target Value</label>
+            <input
+              type="number"
+              id="goalTarget"
+              min="1"
+              placeholder="e.g., 3"
+            />
+            <input
+              type="text"
+              id="goalUnit"
+              placeholder="Unit (e.g., L, steps, km)"
+            />
+          </div>
+          <div class="form-group">
+            <label for="goalFrequency">Frequency</label>
+            <select id="goalFrequency" required>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" id="cancelGoal">
+              Cancel
+            </button>
+            <button type="submit" class="btn-primary">Save Goal</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Task Modal -->
+    <div id="taskModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>New Task</h2>
+          <button class="modal-close" id="closeTaskModal">&times;</button>
+        </div>
+        <form id="taskForm">
+          <div class="form-group">
+            <label for="taskName">Task Name</label>
+            <input
+              type="text"
+              id="taskName"
+              required
+              placeholder="What needs to be done?"
+            />
+          </div>
+          <div class="form-group">
+            <label for="taskCategory">Category (Optional)</label>
+            <input
+              type="text"
+              id="taskCategory"
+              placeholder="e.g., Work, Personal, Health"
+            />
+          </div>
+          <div class="form-group">
+            <label for="taskDueDate">Due Date (Optional)</label>
+            <input type="date" id="taskDueDate" />
+          </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="taskRepeating" />
+              <span>Repeat Daily</span>
+            </label>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" id="cancelTask">
+              Cancel
+            </button>
+            <button type="submit" class="btn-primary">Add Task</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Expense Modal -->
+    <div id="expenseModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Add Expense</h2>
+          <button class="modal-close" id="closeExpenseModal">&times;</button>
+        </div>
+        <form id="expenseForm">
+          <div class="form-group">
+            <label for="expenseAmount">Amount</label>
+            <input
+              type="number"
+              id="expenseAmount"
+              step="0.01"
+              min="0"
+              required
+              placeholder="0.00"
+            />
+          </div>
+          <div class="form-group">
+            <label for="expenseCategory">Category</label>
+            <select id="expenseCategory" required>
+              <option value="food">Food & Dining</option>
+              <option value="transport">Transportation</option>
+              <option value="shopping">Shopping</option>
+              <option value="entertainment">Entertainment</option>
+              <option value="health">Health & Fitness</option>
+              <option value="bills">Bills & Utilities</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="expenseDescription">Description (Optional)</label>
+            <input
+              type="text"
+              id="expenseDescription"
+              placeholder="What was this for?"
+            />
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" id="cancelExpense">
+              Cancel
+            </button>
+            <button type="submit" class="btn-primary">Add Expense</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Goal Progress Modal -->
+    <div id="goalProgressModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="progressModalTitle">Update Progress</h2>
+          <button class="modal-close" id="closeProgressModal">&times;</button>
+        </div>
+        <div class="progress-modal-body">
+          <div class="progress-input-section">
+            <p id="progressCurrentValue">Current: 0</p>
+            <div class="progress-controls">
+              <button
+                type="button"
+                class="btn-increment"
+                id="decrementProgress"
+              >
+                -
+              </button>
+              <input type="number" id="progressInput" min="0" value="0" />
+              <button
+                type="button"
+                class="btn-increment"
+                id="incrementProgress"
+              >
+                +
+              </button>
+            </div>
+            <p id="progressTargetValue">Target: 0</p>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" id="cancelProgress">
+              Cancel
+            </button>
+            <button type="button" class="btn-primary" id="saveProgress">
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metric Entry Modal -->
+    <div id="metricModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Log Metric Entry</h2>
+          <button class="modal-close" id="closeMetricModal">&times;</button>
+        </div>
+        <form id="metricForm">
+          <div class="form-group">
+            <label for="metricType">Metric Type</label>
+            <select id="metricType" required>
+              <option value="weight">Weight</option>
+              <option value="bodyFat">Body Fat %</option>
+              <option value="sleep">Sleep Hours</option>
+              <option value="mood">Mood (1-10)</option>
+              <option value="energy">Energy Level (1-10)</option>
+              <option value="steps">Steps</option>
+              <option value="waterIntake">Water Intake (L)</option>
+              <option value="calories">Calories</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="metricValue">Value</label>
+            <input
+              type="number"
+              id="metricValue"
+              step="0.1"
+              required
+              placeholder="Enter value"
+            />
+          </div>
+          <div class="form-group">
+            <label for="metricDate">Date</label>
+            <input type="date" id="metricDate" required />
+          </div>
+          <div class="form-group">
+            <label for="metricNotes">Notes (Optional)</label>
+            <textarea
+              id="metricNotes"
+              rows="3"
+              placeholder="Add any notes about this entry..."
+            ></textarea>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" id="cancelMetric">
+              Cancel
+            </button>
+            <button type="submit" class="btn-primary">Save Entry</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Custom Metric Type Modal -->
+    <div id="customMetricModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Add Custom Metric</h2>
+          <button class="modal-close" id="closeCustomMetricModal">&times;</button>
+        </div>
+        <form id="customMetricForm">
+          <div class="form-group">
+            <label for="customMetricName">Metric Name</label>
+            <input
+              type="text"
+              id="customMetricName"
+              required
+              placeholder="e.g., Blood Pressure, Waist Size"
+            />
+          </div>
+          <div class="form-group">
+            <label for="customMetricUnit">Unit (Optional)</label>
+            <input
+              type="text"
+              id="customMetricUnit"
+              placeholder="e.g., lbs, kg, cm, mmHg"
+            />
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" id="cancelCustomMetric">
+              Cancel
+            </button>
+            <button type="submit" class="btn-primary">Add Metric Type</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker registered'))
+            .catch(err => console.log('Service Worker failed', err));
+        });
+      }
+    </script>
+  </body>
+</html>
