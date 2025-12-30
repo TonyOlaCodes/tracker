@@ -5,12 +5,17 @@ const AppState = {
   goals: [],
   tasks: [],
   expenses: [],
+  income: [],
+  settings: {
+    currency: "USD",
+    weightUnit: "lbs",
+    theme: localStorage.getItem("theme") || "light",
+  },
   currentView: "dashboard",
   currentFilter: {
     goals: "all",
     tasks: "pending",
   },
-  theme: localStorage.getItem("theme") || "light",
   categoryBudgets: {
     food: 500,
     transport: 200,
@@ -63,26 +68,35 @@ function loadData() {
   const savedGoals = localStorage.getItem("goals");
   const savedTasks = localStorage.getItem("tasks");
   const savedExpenses = localStorage.getItem("expenses");
+  const savedIncome = localStorage.getItem("income");
   const savedBudgets = localStorage.getItem("categoryBudgets");
+  const savedSettings = localStorage.getItem("settings");
   const savedMetrics = localStorage.getItem("metrics");
   const savedMetricTypes = localStorage.getItem("metricTypes");
 
   if (savedGoals) AppState.goals = JSON.parse(savedGoals);
   if (savedTasks) AppState.tasks = JSON.parse(savedTasks);
   if (savedExpenses) AppState.expenses = JSON.parse(savedExpenses);
+  if (savedIncome) AppState.income = JSON.parse(savedIncome);
   if (savedBudgets) AppState.categoryBudgets = JSON.parse(savedBudgets);
+  if (savedSettings) AppState.settings = { ...AppState.settings, ...JSON.parse(savedSettings) };
   if (savedMetrics) AppState.metrics = JSON.parse(savedMetrics);
   if (savedMetricTypes) AppState.metricTypes = { ...AppState.metricTypes, ...JSON.parse(savedMetricTypes) };
+  
+  // Apply units to metrics based on settings
+  AppState.metricTypes.weight.unit = AppState.settings.weightUnit;
 }
 
 function saveData() {
   localStorage.setItem("goals", JSON.stringify(AppState.goals));
   localStorage.setItem("tasks", JSON.stringify(AppState.tasks));
   localStorage.setItem("expenses", JSON.stringify(AppState.expenses));
+  localStorage.setItem("income", JSON.stringify(AppState.income));
   localStorage.setItem(
     "categoryBudgets",
     JSON.stringify(AppState.categoryBudgets)
   );
+  localStorage.setItem("settings", JSON.stringify(AppState.settings));
   localStorage.setItem("metrics", JSON.stringify(AppState.metrics));
   localStorage.setItem("metricTypes", JSON.stringify(AppState.metricTypes));
 }
@@ -91,14 +105,7 @@ function saveData() {
 // THEME MANAGEMENT
 // ============================================
 function initializeTheme() {
-  document.documentElement.setAttribute("data-theme", AppState.theme);
-
-  const themeToggle = document.getElementById("themeToggle");
-  themeToggle.addEventListener("click", () => {
-    AppState.theme = AppState.theme === "light" ? "dark" : "light";
-    document.documentElement.setAttribute("data-theme", AppState.theme);
-    localStorage.setItem("theme", AppState.theme);
-  });
+  document.documentElement.setAttribute("data-theme", AppState.settings.theme);
 }
 
 // ============================================
@@ -152,6 +159,9 @@ function switchView(viewName) {
     case "insights":
       renderInsights();
       break;
+    case "settings":
+      renderSettings();
+      break;
   }
 }
 
@@ -185,9 +195,29 @@ function initializeModals() {
   const closeExpenseModal = document.getElementById("closeExpenseModal");
   const cancelExpense = document.getElementById("cancelExpense");
 
-  addExpenseBtn.addEventListener("click", () => openModal("expenseModal"));
+  addExpenseBtn.addEventListener("click", () => openExpenseModal());
   closeExpenseModal.addEventListener("click", () => closeModal("expenseModal"));
   cancelExpense.addEventListener("click", () => closeModal("expenseModal"));
+
+  // Income Modal
+  const closeIncomeModal = document.getElementById("closeIncomeModal");
+  const cancelIncome = document.getElementById("cancelIncome");
+  const addIncomeBtn = document.getElementById("addIncomeBtn");
+
+  addIncomeBtn.addEventListener("click", () => {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById("incomeDate").value = today;
+    openModal("incomeModal");
+  });
+  closeIncomeModal.addEventListener("click", () => closeModal("incomeModal"));
+  cancelIncome.addEventListener("click", () => closeModal("incomeModal"));
+
+  // Category Details Modal
+  const closeCategoryDetailsModal = document.getElementById("closeCategoryDetailsModal");
+  const closeCategoryDetails = document.getElementById("closeCategoryDetails");
+
+  closeCategoryDetailsModal.addEventListener("click", () => closeModal("categoryDetailsModal"));
+  closeCategoryDetails.addEventListener("click", () => closeModal("categoryDetailsModal"));
 
   // Progress Modal
   const closeProgressModal = document.getElementById("closeProgressModal");
@@ -290,7 +320,7 @@ function initializeQuickActions() {
   });
 
   document.getElementById("quickAddExpense").addEventListener("click", () => {
-    openModal("expenseModal");
+    openExpenseModal();
   });
 }
 
@@ -314,6 +344,12 @@ function initializeForms() {
   document.getElementById("expenseForm").addEventListener("submit", (e) => {
     e.preventDefault();
     handleExpenseSubmit();
+  });
+
+  // Income Form
+  document.getElementById("incomeForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    handleIncomeSubmit();
   });
 
   // Progress controls
@@ -389,19 +425,64 @@ function handleTaskSubmit() {
   updateAllViews();
 }
 
+function openExpenseModal(expenseId = null) {
+  const form = document.getElementById("expenseForm");
+  const title = document.getElementById("expenseModalTitle");
+
+  if (expenseId) {
+    const expense = AppState.expenses.find((e) => e.id === expenseId);
+    title.textContent = "Edit Expense";
+    document.getElementById("expenseAmount").value = expense.amount;
+    document.getElementById("expenseCategory").value = expense.category;
+    document.getElementById("expenseDescription").value = expense.description || "";
+    form.dataset.editId = expenseId;
+  } else {
+    title.textContent = "Add Expense";
+    form.reset();
+    delete form.dataset.editId;
+  }
+
+  openModal("expenseModal");
+}
+
 function handleExpenseSubmit() {
+  const form = document.getElementById("expenseForm");
+  const editId = form.dataset.editId;
+
   const expenseData = {
-    id: Date.now().toString(),
+    id: editId || Date.now().toString(),
     amount: parseFloat(document.getElementById("expenseAmount").value),
     category: document.getElementById("expenseCategory").value,
     description: document.getElementById("expenseDescription").value,
-    date: new Date().toISOString(),
+    date: editId ? AppState.expenses.find(e => e.id === editId).date : new Date().toISOString(),
   };
 
-  AppState.expenses.push(expenseData);
+  if (editId) {
+    const index = AppState.expenses.findIndex((e) => e.id === editId);
+    AppState.expenses[index] = expenseData;
+  } else {
+    AppState.expenses.push(expenseData);
+  }
+
   saveData();
   closeModal("expenseModal");
-  document.getElementById("expenseForm").reset();
+  form.reset();
+  updateAllViews();
+}
+
+function handleIncomeSubmit() {
+  const incomeData = {
+    id: Date.now().toString(),
+    amount: parseFloat(document.getElementById("incomeAmount").value),
+    source: document.getElementById("incomeSource").value,
+    date: document.getElementById("incomeDate").value,
+    createdAt: new Date().toISOString(),
+  };
+
+  AppState.income.push(incomeData);
+  saveData();
+  closeModal("incomeModal");
+  document.getElementById("incomeForm").reset();
   updateAllViews();
 }
 
@@ -1038,6 +1119,7 @@ function updateAllViews() {
   renderTasks();
   renderSpending();
   renderInsights();
+  if (AppState.currentView === "settings") renderSettings();
 }
 
 function renderDashboard() {
@@ -1081,7 +1163,7 @@ function renderDashboard() {
     AppState.tasks.filter((t) => !t.completed).length;
   document.getElementById(
     "todaySpending"
-  ).textContent = `$${getSpendingByPeriod("today").toFixed(2)}`;
+  ).textContent = formatCurrency(getSpendingByPeriod("today"));
 
   const bestStreak = Math.max(
     ...AppState.goals.map((g) => calculateGoalStats(g).longestStreak),
@@ -1432,13 +1514,13 @@ function renderSpending() {
   // Update summary
   document.getElementById(
     "spendingToday"
-  ).textContent = `$${getSpendingByPeriod("today").toFixed(2)}`;
-  document.getElementById("spendingWeek").textContent = `$${getSpendingByPeriod(
+  ).textContent = formatCurrency(getSpendingByPeriod("today"));
+  document.getElementById("spendingWeek").textContent = formatCurrency(getSpendingByPeriod(
     "week"
-  ).toFixed(2)}`;
+  ));
   document.getElementById(
     "spendingMonth"
-  ).textContent = `$${getSpendingByPeriod("month").toFixed(2)}`;
+  ).textContent = formatCurrency(getSpendingByPeriod("month"));
   document.getElementById("noSpendDays").textContent = getNoSpendDays();
 
   // Category budgets
@@ -1452,16 +1534,14 @@ function renderSpending() {
       const percentage = Math.min(Math.round((spent / budget) * 100), 100);
 
       return `
-            <div class="category-item">
+            <div class="category-item" onclick="openCategoryDetails('${category}')">
                 <div class="category-header">
                     <span class="category-name">${
                       category.charAt(0).toUpperCase() + category.slice(1)
                     }</span>
                     <div>
-                        <span class="category-amount">$${spent.toFixed(
-                          2
-                        )}</span>
-                        <span class="category-budget"> / $${budget}</span>
+                        <span class="category-amount">${formatCurrency(spent)}</span>
+                        <span class="category-budget"> / ${formatCurrency(budget)}</span>
                     </div>
                 </div>
                 <div class="progress-bar-container">
@@ -1491,28 +1571,169 @@ function renderSpending() {
                 <p>Start tracking your spending</p>
             </div>
         `;
-    return;
+  } else {
+    expensesContainer.innerHTML = recentExpenses
+      .map(
+        (expense) => `
+          <div class="expense-card" onclick="openExpenseModal('${expense.id}')">
+              <div class="expense-info">
+                  <div class="expense-description">${
+                    expense.description || expense.category
+                  }</div>
+                  <div class="expense-meta">
+                      ${expense.category} • ${new Date(
+          expense.date
+        ).toLocaleDateString()}
+                  </div>
+              </div>
+              <div class="expense-amount">${formatCurrency(expense.amount)}</div>
+          </div>
+      `
+      )
+      .join("");
   }
 
-  expensesContainer.innerHTML = recentExpenses
-    .map(
-      (expense) => `
-        <div class="expense-card">
-            <div class="expense-info">
-                <div class="expense-description">${
-                  expense.description || expense.category
-                }</div>
-                <div class="expense-meta">
-                    ${expense.category} • ${new Date(
-        expense.date
-      ).toLocaleDateString()}
-                </div>
+  renderSpendingChart();
+}
+
+function renderSpendingChart() {
+  const canvas = document.getElementById("spendingChart");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+
+  canvas.width = canvas.offsetWidth;
+  canvas.height = 200;
+
+  const width = canvas.width;
+  const height = canvas.height;
+  const padding = 30;
+
+  ctx.clearRect(0, 0, width, height);
+
+  // Get last 7 days spending
+  const days = 7;
+  const data = [];
+  for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const spent = AppState.expenses
+          .filter(e => e.date.split('T')[0] === dateStr)
+          .reduce((sum, e) => sum + e.amount, 0);
+      data.push({ date: dateStr, value: spent });
+  }
+
+  const maxValue = Math.max(...data.map(d => d.value), 10);
+  const isDark = AppState.settings.theme === "dark";
+
+  // Draw chart
+  ctx.strokeStyle = isDark ? "#2d2d2d" : "#e9ecef";
+  ctx.beginPath();
+  ctx.moveTo(padding, padding);
+  ctx.lineTo(padding, height - padding);
+  ctx.lineTo(width - padding, height - padding);
+  ctx.stroke();
+
+  // Draw line
+  ctx.strokeStyle = "#6366f1";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  data.forEach((d, i) => {
+      const x = padding + (i / (days - 1)) * (width - 2 * padding);
+      const y = height - padding - (d.value / maxValue) * (height - 2 * padding);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Labels
+  ctx.fillStyle = isDark ? "#adb5bd" : "#6c757d";
+  ctx.font = "10px Inter";
+  ctx.textAlign = "center";
+  data.forEach((d, i) => {
+      const x = padding + (i / (days - 1)) * (width - 2 * padding);
+      const date = new Date(d.date);
+      ctx.fillText(`${date.getMonth()+1}/${date.getDate()}`, x, height - 10);
+  });
+}
+
+function openCategoryDetails(category) {
+    const expenses = AppState.expenses.filter(e => e.category === category)
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    const spent = expenses.reduce((sum, e) => sum + e.amount, 0);
+    const budget = AppState.categoryBudgets[category];
+
+    document.getElementById("categoryDetailsTitle").textContent = category.charAt(0).toUpperCase() + category.slice(1);
+    document.getElementById("categorySpentValue").textContent = formatCurrency(spent);
+    document.getElementById("categoryBudgetValue").textContent = formatCurrency(budget);
+    document.getElementById("categoryRemainingValue").textContent = formatCurrency(budget - spent);
+
+    const list = document.getElementById("categoryExpensesList");
+    if (expenses.length === 0) {
+        list.innerHTML = `<p class="empty-state">No expenses in this category</p>`;
+    } else {
+        list.innerHTML = expenses.map(e => `
+            <div class="category-expense-item">
+                <span>${e.description || 'No description'}</span>
+                <strong>${formatCurrency(e.amount)}</strong>
+                <small>${new Date(e.date).toLocaleDateString()}</small>
             </div>
-            <div class="expense-amount">$${expense.amount.toFixed(2)}</div>
-        </div>
-    `
-    )
-    .join("");
+        `).join("");
+    }
+
+    openModal("categoryDetailsModal");
+}
+
+function renderSettings() {
+    const container = document.getElementById("settings");
+    
+    // Set current values
+    document.getElementById("darkModeToggle").checked = AppState.settings.theme === "dark";
+    document.getElementById("currencySelect").value = AppState.settings.currency;
+    document.getElementById("weightUnitSelect").value = AppState.settings.weightUnit;
+
+    // Add event listeners (if not already added)
+    const darkModeToggle = document.getElementById("darkModeToggle");
+    darkModeToggle.onchange = (e) => {
+        AppState.settings.theme = e.target.checked ? "dark" : "light";
+        document.documentElement.setAttribute("data-theme", AppState.settings.theme);
+        saveData();
+    };
+
+    const currencySelect = document.getElementById("currencySelect");
+    currencySelect.onchange = (e) => {
+        AppState.settings.currency = e.target.value;
+        saveData();
+        updateAllViews();
+    };
+
+    const weightUnitSelect = document.getElementById("weightUnitSelect");
+    weightUnitSelect.onchange = (e) => {
+        AppState.settings.weightUnit = e.target.value;
+        AppState.metricTypes.weight.unit = e.target.value;
+        saveData();
+        updateAllViews();
+    };
+
+    const clearDataBtn = document.getElementById("clearDataBtn");
+    clearDataBtn.onclick = () => {
+        if (confirm("Are you sure you want to clear ALL data? This cannot be undone.")) {
+            localStorage.clear();
+            location.reload();
+        }
+    };
+}
+
+function formatCurrency(amount) {
+    const currencies = {
+        USD: { symbol: "$", pos: "before" },
+        EUR: { symbol: "€", pos: "before" },
+        GBP: { symbol: "£", pos: "before" },
+        JPY: { symbol: "¥", pos: "before" },
+        NGN: { symbol: "₦", pos: "before" },
+    };
+    const c = currencies[AppState.settings.currency] || currencies.USD;
+    return c.pos === "before" ? `${c.symbol}${amount.toFixed(2)}` : `${amount.toFixed(2)}${c.symbol}`;
 }
 
 function renderInsights() {

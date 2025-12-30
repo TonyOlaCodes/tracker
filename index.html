@@ -21,39 +21,7 @@
     <meta name="apple-mobile-web-app-title" content="Life Tracker" />
   </head>
   <body>
-    <!-- Theme Toggle -->
-    <button id="themeToggle" class="theme-toggle" aria-label="Toggle dark mode">
-      <svg
-        class="sun-icon"
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <circle cx="12" cy="12" r="5"></circle>
-        <line x1="12" y1="1" x2="12" y2="3"></line>
-        <line x1="12" y1="21" x2="12" y2="23"></line>
-        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-        <line x1="1" y1="12" x2="3" y2="12"></line>
-        <line x1="21" y1="12" x2="23" y2="12"></line>
-        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-      </svg>
-      <svg
-        class="moon-icon"
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-      </svg>
-    </button>
+    <!-- Theme Toggle removed as per request, moving to Settings -->
 
     <!-- Main Container -->
     <div class="container">
@@ -150,6 +118,20 @@
             <line x1="6" y1="20" x2="6" y2="14"></line>
           </svg>
           <span>Insights</span>
+        </button>
+        <button class="nav-item" data-view="settings">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span>Settings</span>
         </button>
       </nav>
 
@@ -390,43 +372,60 @@
       <div id="spending" class="view">
         <header class="view-header">
           <h1>Spending</h1>
-          <button class="btn-primary" id="addExpenseBtn">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-            Add Expense
-          </button>
+          <div class="header-actions">
+            <button class="btn-secondary" id="addIncomeBtn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add Income
+            </button>
+            <button class="btn-primary" id="addExpenseBtn">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+              Add Expense
+            </button>
+          </div>
         </header>
 
         <div class="spending-summary">
-          <div class="spending-card">
-            <h3>Today</h3>
-            <p class="spending-amount" id="spendingToday">$0.00</p>
+          <div class="spending-card compact">
+            <h3 class="small-label">Today</h3>
+            <p class="spending-amount small" id="spendingToday">$0.00</p>
           </div>
-          <div class="spending-card">
-            <h3>This Week</h3>
-            <p class="spending-amount" id="spendingWeek">$0.00</p>
+          <div class="spending-card compact">
+            <h3 class="small-label">Week</h3>
+            <p class="spending-amount small" id="spendingWeek">$0.00</p>
           </div>
-          <div class="spending-card">
-            <h3>This Month</h3>
-            <p class="spending-amount" id="spendingMonth">$0.00</p>
+          <div class="spending-card compact">
+            <h3 class="small-label">Month</h3>
+            <p class="spending-amount small" id="spendingMonth">$0.00</p>
           </div>
-          <div class="spending-card highlight">
-            <h3>No-Spend Days</h3>
-            <p class="spending-amount" id="noSpendDays">0</p>
+          <div class="spending-card compact highlight">
+            <h3 class="small-label">No-Spend</h3>
+            <p class="spending-amount small" id="noSpendDays">0</p>
           </div>
         </div>
 
+        <div class="spending-chart-section">
+          <h2>Daily Spending</h2>
+          <canvas id="spendingChart"></canvas>
+        </div>
+
         <div class="category-budgets">
-          <h2>Category Budgets</h2>
+          <div class="section-header">
+            <h2>Category Budgets</h2>
+            <button class="btn-secondary btn-sm" id="manageBudgetsBtn">Adjust</button>
+          </div>
           <div id="categoryBudgetsList" class="category-list"></div>
         </div>
 
@@ -562,6 +561,68 @@
           </div>
         </div>
       </div>
+
+      <!-- Settings View -->
+      <div id="settings" class="view">
+        <header class="view-header">
+          <h1>Settings</h1>
+        </header>
+
+        <div class="settings-container">
+          <div class="settings-section">
+            <h3>Appearance</h3>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-title">Dark Mode</div>
+                <div class="setting-description">Use a darker color scheme for the application</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="darkModeToggle">
+                <span class="slider round"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3>Localization</h3>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-title">Currency</div>
+                <div class="setting-description">Change the currency symbol used in the app</div>
+              </div>
+              <select id="currencySelect" class="settings-select">
+                <option value="USD">USD ($)</option>
+                <option value="EUR">EUR (€)</option>
+                <option value="GBP">GBP (£)</option>
+                <option value="JPY">JPY (¥)</option>
+                <option value="NGN">NGN (₦)</option>
+              </select>
+            </div>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-title">Weight Measurement</div>
+                <div class="setting-description">Choose between lbs and kg</div>
+              </div>
+              <select id="weightUnitSelect" class="settings-select">
+                <option value="lbs">Pounds (lbs)</option>
+                <option value="kg">Kilograms (kg)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <h3>Data Management</h3>
+            <div class="setting-item">
+              <div class="setting-info">
+                <div class="setting-title">Clear All Data</div>
+                <div class="setting-description">Permanently delete all tracks, goals, and history</div>
+              </div>
+              <button class="btn-danger" id="clearDataBtn">Clear Data</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
     </div>
 
     <!-- Goal Modal -->
@@ -671,7 +732,7 @@
     <div id="expenseModal" class="modal">
       <div class="modal-content">
         <div class="modal-header">
-          <h2>Add Expense</h2>
+          <h2 id="expenseModalTitle">Add Expense</h2>
           <button class="modal-close" id="closeExpenseModal">&times;</button>
         </div>
         <form id="expenseForm">
@@ -845,6 +906,64 @@
       </div>
     </div>
 
+    <!-- Income Modal -->
+    <div id="incomeModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Add Income / Gained Money</h2>
+          <button class="modal-close" id="closeIncomeModal">&times;</button>
+        </div>
+        <form id="incomeForm">
+          <div class="form-group">
+            <label for="incomeAmount">Amount</label>
+            <input type="number" id="incomeAmount" step="0.01" min="0" required placeholder="0.00" />
+          </div>
+          <div class="form-group">
+            <label for="incomeSource">Source</label>
+            <input type="text" id="incomeSource" required placeholder="e.g., Salary, Gift, Side Hustle" />
+          </div>
+          <div class="form-group">
+            <label for="incomeDate">Date</label>
+            <input type="date" id="incomeDate" required />
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" id="cancelIncome">Cancel</button>
+            <button type="submit" class="btn-primary">Add Income</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Category Details Modal -->
+    <div id="categoryDetailsModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="categoryDetailsTitle">Category Details</h2>
+          <button class="modal-close" id="closeCategoryDetailsModal">&times;</button>
+        </div>
+        <div class="category-details-body">
+          <div class="category-stats-grid">
+            <div class="category-stat-card">
+              <span class="stat-label">Spent</span>
+              <span class="stat-value" id="categorySpentValue">$0.00</span>
+            </div>
+            <div class="category-stat-card">
+              <span class="stat-label">Budget</span>
+              <span class="stat-value" id="categoryBudgetValue">$0.00</span>
+            </div>
+            <div class="category-stat-card">
+              <span class="stat-label">Remaining</span>
+              <span class="stat-value" id="categoryRemainingValue">$0.00</span>
+            </div>
+          </div>
+          <h3>Expenses in this category</h3>
+          <div id="categoryExpensesList" class="category-expenses-list"></div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" id="closeCategoryDetails">Close</button>
+        </div>
+      </div>
+    </div>
     <script src="app.js"></script>
     <script>
       if ('serviceWorker' in navigator) {
