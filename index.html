@@ -140,6 +140,14 @@
                    <button class="f-tab" data-goal-filter="monthly">Monthly</button>
                 </div>
                 <button class="icon-btn" id="toggleGoalCharts" title="Performance Charts" style="font-size: 1.2rem;">📈</button>
+                <div class="filter-tabs" id="habitTimeframeTabs" style="display: none; margin-left: 0.5rem;">
+                   <button class="f-tab active" data-timeframe="7d">7D</button>
+                   <button class="f-tab" data-timeframe="week">W</button>
+                   <button class="f-tab" data-timeframe="month">M</button>
+                   <button class="f-tab" data-timeframe="3m">3M</button>
+                   <button class="f-tab" data-timeframe="year">Y</button>
+                   <button class="f-tab" data-timeframe="all">All</button>
+                </div>
              </div>
              <select id="goalCompletionFilter" class="dropdown-sl">
                 <option value="all">All Progress</option>
@@ -162,7 +170,6 @@
              <h1>Growth & Metrics</h1>
              <div class="header-actions">
                <button class="btn-text" id="addNewMetricTypeBtn" style="color: var(--primary); margin-right: 0.5rem;">+ New Metric</button>
-               <button class="btn-primary" id="addMetricBtn">Log Data</button>
              </div>
           </div>
           
@@ -361,9 +368,9 @@
                </div>
             </div>
 
-            <div class="form-row">
+            <div class="form-row" id="metricDataFields">
                <div class="form-group">
-                  <label>Value (Optional if just setting target)</label>
+                  <label>Value</label>
                   <input type="number" id="metricValue" step="0.01">
                </div>
                <div class="form-group">

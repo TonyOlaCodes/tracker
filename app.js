@@ -25,7 +25,8 @@ const AppState = {
   editId: null,
   editMetricKey: null,
   chartInstances: {},
-  goalsShowCharts: false 
+  goalsShowCharts: false,
+  goalsTimeframe: '7d' 
 };
 
 /**
@@ -615,11 +616,23 @@ const App = {
         const stars = '⭐'.repeat(t.importance);
         const color = AppState.taskCategories[t.category] || '#888';
         const isQuant = t.type === 'quantitative';
-        const pct = isQuant ? Math.min(100, Math.round((t.progress / t.target) * 100)) : (t.completed ? 100 : 0);
+        
+        // Glow logic
+        let glowClass = '';
+        if (t.dueDate && !t.completed) {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const due = new Date(t.dueDate); due.setHours(0,0,0,0);
+            const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays < 0) glowClass = 'glow-overdue';
+            else if (diffDays === 0) glowClass = 'glow-today';
+            else if (diffDays === 1) glowClass = 'glow-soon-1';
+            else if (diffDays <= 3) glowClass = 'glow-soon-2';
+        }
         
         list.innerHTML += `
-           <div class="task-card ${t.completed ? 'completed' : ''}" data-id="${t.id}">
-              <div class="task-checkbox-custom ${t.completed ? 'checked' : ''}" onclick="App.toggleTask('${t.id}')">${t.completed ? '✓' : ''}</div>
+           <div class="task-card ${t.completed ? 'completed' : ''} ${glowClass}" data-id="${t.id}">
+              <div class="task-checkbox-custom ${t.completed ? 'checked' : ''}">${t.completed ? '✓' : ''}</div>
               <div class="task-info">
                  <div class="task-title-row">
                     <span class="task-title">${t.name}</span>
@@ -765,7 +778,13 @@ const App = {
               <div class="habit-header">
                  <div>
                     <span class="badge badge-${g.freq}">${g.freq}</span>
-                    <div class="habit-title">${g.title}</div>
+                    <div>
+                     <span class="badge badge-${g.freq}">${g.freq}</span>
+                     <div>
+                     <span class="badge badge-${g.freq}">${g.freq}</span>
+                     <div class="habit-title">${g.title}</div>
+                  </div>
+                  </div>
                  </div>
                  <div class="card-actions">
                     <button class="icon-btn edit-habit">✏️</button>
@@ -881,6 +900,8 @@ const App = {
          });
       } else histSection.style.display = 'none';
       
+      modal.querySelector('button[type="submit"]').textContent = 'Save Changes';
+      modal.querySelector('h2').textContent = 'Edit Habit';
       modal.classList.add('active');
   },
 
@@ -942,19 +963,35 @@ const App = {
         }
 
         const lastVal = entries.length > 0 ? entries[entries.length-1].value : '--';
+        
+        // Calculate A, H, L
+        let avg = '--', high = '--', low = '--';
+        if (entries.length > 0) {
+            const vals = entries.map(e => e.value);
+            avg = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
+            high = Math.max(...vals);
+            low = Math.min(...vals);
+        }
+
         const card = document.createElement('div');
         card.className = 'metric-card';
         card.dataset.metric = key;
         card.innerHTML = `
            <div class="metric-card-header">
-              <div>
-                 <h3>${key}</h3>
-                 <div style="display:flex; align-items:baseline; gap:0.5rem;">
+              <div style="flex: 1;">
+                 <h3 style="margin-bottom: 0.25rem;">${key}</h3>
+                 <div style="display:flex; align-items:baseline; gap:0.5rem; flex-wrap: wrap;">
                     <span style="font-size:1.5rem; font-weight:800; color:var(--text-main);">${lastVal}</span>
                     <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">${m.unit || ''}</span>
+                    
+                    <div style="display: flex; gap: 0.75rem; margin-left: auto; font-size: 0.7rem; font-weight: 700; color: var(--text-muted);">
+                        <span>A: <span style="color: var(--text-main)">${avg}</span></span>
+                        <span>H: <span style="color: var(--text-main)">${high}</span></span>
+                        <span>L: <span style="color: var(--text-main)">${low}</span></span>
+                    </div>
                  </div>
               </div>
-              <div class="card-actions">
+              <div class="card-actions" style="margin-left: 1rem;">
                  <button class="icon-btn log-metric-direct" title="Log Data">📊</button>
                  <button class="icon-btn edit-metric">✏️</button>
                  <button class="icon-btn delete-metric">🗑️</button>
@@ -979,7 +1016,30 @@ const App = {
         AppState.chartInstances[key] = new Chart(ctx, {
            type: 'line', 
            data: { labels: entries.map(e => new Date(e.date).toLocaleDateString(undefined, {month:'short', day:'numeric'})), datasets },
-           options: { responsive:true, maintainAspectRatio:false, scales:{ x:{grid:{display:false}}, y:{beginAtZero:false, grid:{color:'rgba(0,0,0,0.05)'}} }, plugins:{ legend:{display:false} } }
+           options: { 
+               responsive:true, 
+               maintainAspectRatio:false, 
+               interaction: {
+                   intersect: false,
+                   mode: 'index',
+               },
+               scales:{ 
+                   x:{grid:{display:false}}, 
+                   y:{beginAtZero:false, grid:{color:'rgba(0,0,0,0.05)'}} 
+               }, 
+               plugins:{ 
+                   legend:{display:false},
+                   tooltip: {
+                       enabled: true,
+                       backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                       titleColor: '#f8fafc',
+                       bodyColor: '#f8fafc',
+                       padding: 10,
+                       cornerRadius: 8,
+                       displayColors: false
+                   }
+               } 
+           }
         });
      });
   },
@@ -994,8 +1054,25 @@ const App = {
       document.getElementById('metricForm').reset();
       document.getElementById('metricDate').value = new Date().toISOString().split('T')[0];
       this.populateMetricTypeSelect();
-      document.getElementById('newMetricInputs').style.display = isNew ? 'block' : 'none';
-      if (isNew) document.getElementById('metricTypeInput').value = 'custom';
+      
+      const newInputs = document.getElementById('newMetricInputs');
+      const dataFields = document.getElementById('metricDataFields');
+      const title = modal.querySelector('h2');
+      const typeGroup = modal.querySelector('.form-group:first-child');
+      
+      if (isNew) {
+          newInputs.style.display = 'block';
+          dataFields.style.display = 'none';
+          document.getElementById('metricTypeInput').value = 'custom';
+          typeGroup.style.display = 'none';
+          title.textContent = AppState.editMetricKey ? "Edit Metric Type" : "New Metric Type";
+      } else {
+          newInputs.style.display = 'none';
+          dataFields.style.display = 'flex';
+          typeGroup.style.display = 'block';
+          title.textContent = "Log Entry";
+      }
+      
       modal.classList.add('active');
   },
 
@@ -1020,7 +1097,11 @@ const App = {
    * SYSTEM
    */
   updateTime() { this.renderDashboard(); },
-  renderAll() { this.renderSidebar(); this.renderTasks(); this.renderGoals(); this.renderGrowth(); this.renderDashboard(); }
+  renderSidebar() {
+      // Sidebar logic
+  },
+
+  renderAll() { this.renderTasks(); this.renderGoals(); this.renderGrowth(); this.renderDashboard(); }
 };
 
 // Start

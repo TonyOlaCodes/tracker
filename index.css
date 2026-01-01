@@ -12,6 +12,10 @@
     --sidebar-width: 250px;
     --header-height: 60px;
     --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Additional */
+    --bg-card: #ffffff;
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
 [data-theme="dark"] {
@@ -20,6 +24,7 @@
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
     --border: #334155;
+    --bg-card: #334155;
 }
 
 * {
@@ -278,6 +283,32 @@ body {
     transition: var(--transition);
 }
 
+/* Urgency Glows */
+@keyframes taskPulse {
+    0% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.2); }
+    50% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.6); }
+    100% { box-shadow: 0 0 5px rgba(239, 68, 68, 0.2); }
+}
+
+.glow-overdue {
+    border-color: #ef4444 !important;
+    animation: taskPulse 1.5s infinite;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4);
+}
+
+.glow-today {
+    border-color: #f87171 !important;
+    animation: taskPulse 2s infinite;
+}
+
+.glow-soon-1 {
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
+}
+
+.glow-soon-2 {
+    box-shadow: 0 0 5px rgba(239, 68, 68, 0.1);
+}
+
 .task-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
@@ -344,6 +375,12 @@ body {
     background: var(--primary);
     border-color: var(--primary);
     color: white;
+}
+
+.card-actions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
 }
 
 /* Modals */
@@ -773,6 +810,14 @@ input:checked + .slider:before {
     height: 100%;
     background: var(--primary);
     transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.goal-progress-slider {
+    transition: background 0.2s ease;
+}
+
+.goal-progress-slider::-webkit-slider-thumb {
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), background 0.2s ease;
 }
 
 .input-plus {
