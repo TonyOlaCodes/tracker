@@ -78,10 +78,13 @@ const App = {
 
            AppState.dashWidgets = { ...AppState.dashWidgets, ...(parsed.dashWidgets || {}) };
            
-           // Cleanup missing metrics from widget config
-           if (AppState.dashWidgets.growth && !AppState.metrics[AppState.dashWidgets.growth.metric]) {
-               const firstMetric = Object.keys(AppState.metrics)[0];
-               if (firstMetric) AppState.dashWidgets.growth.metric = firstMetric;
+           // Ensure Growth widget has selections or defaults
+           if (AppState.dashWidgets.growth) {
+               if (!AppState.dashWidgets.growth.selections) {
+                   AppState.dashWidgets.growth.selections = [{ metric: 'weight', stats: ['latest', 'average'] }];
+               }
+               // Cleanup deleted metrics
+               AppState.dashWidgets.growth.selections = AppState.dashWidgets.growth.selections.filter(s => AppState.metrics[s.metric]);
            }
 
         } catch (e) {
@@ -205,8 +208,23 @@ const App = {
      document.getElementById('dashWidgetForm').addEventListener('submit', (e) => {
          e.preventDefault();
          const view = document.getElementById('dashWidgetId').value;
-         if (view === 'tasks') AppState.dashWidgets.tasks.type = document.getElementById('dashTaskType').value;
-         if (view === 'habit') AppState.dashWidgets.habit.type = document.getElementById('dashHabitType').value;
+         if (view === 'tasks') {
+             const selections = [];
+             document.querySelectorAll('.t-dash-option:checked').forEach(cb => selections.push(cb.value));
+             AppState.dashWidgets.tasks.selections = selections.length > 0 ? selections : ['today'];
+         }
+         if (view === 'habit') {
+             const selections = [];
+             document.querySelectorAll('.h-dash-option:checked').forEach(cb => selections.push(cb.value));
+             AppState.dashWidgets.habit.selections = selections.length > 0 ? selections : ['completed'];
+             
+             if (selections.includes('custom')) {
+                 const watchList = [];
+                 document.querySelectorAll('.dash-habit-watch:checked').forEach(cb => watchList.push(cb.value));
+                 AppState.dashWidgets.habit.watchList = watchList;
+                 AppState.dashWidgets.habit.watchName = document.getElementById('dashHabitWatchName').value;
+             }
+         }
          if (view === 'growth') {
              const selections = [];
              document.querySelectorAll('.growth-metric-entry').forEach(entry => {
@@ -219,7 +237,7 @@ const App = {
                      selections.push({ metric, stats });
                  }
              });
-             AppState.dashWidgets.growth.selections = selections.length > 0 ? selections : (AppState.dashWidgets.growth.selections || []);
+             AppState.dashWidgets.growth.selections = selections;
          }
          this.saveData();
          document.getElementById('dashWidgetModal').classList.remove('active');
@@ -394,40 +412,132 @@ const App = {
      
      // Widget: Tasks
      const tCfg = AppState.dashWidgets.tasks;
-     const tStat = document.getElementById('dashTaskStat');
-     const tLabel = tStat.nextElementSibling;
-     if (tCfg.type === 'today') {
-        const done = AppState.tasks.filter(t => t.completed).length;
-        tStat.textContent = `${done}/${AppState.tasks.length}`;
-        tLabel.textContent = "Items completed today";
+     const tContainer = document.querySelector('.dash-card[data-view="tasks"]');
+     const tSelections = tCfg.selections || [tCfg.type || 'today'];
+     
+     if (tSelections.length > 1) {
+         let html = `<h3>To-Do List</h3><div class="dash-stat-list" style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-top:0.5rem;">`;
+         tSelections.forEach(sel => {
+             let val = '--', label = '';
+             if (sel === 'today') { val = `${AppState.tasks.filter(t => t.completed).length}/${AppState.tasks.length}`; label = 'Today'; }
+             else if (sel === 'pending') { val = AppState.tasks.filter(t => !t.completed).length; label = 'Pending'; }
+             else if (sel === 'due_soon') {
+                 const soon = AppState.tasks.filter(t => !t.completed && t.dueDate).sort((a,b) => new Date(a.dueDate) - new Date(b.dueDate)).slice(0, 3);
+                 val = soon.length; label = 'Due Soon';
+             }
+             else if (sel === 'priority') { val = AppState.tasks.filter(t => !t.completed && t.importance >= 5).length; label = 'High Prio'; }
+             
+             html += `<div class="dash-stat-box" style="background:rgba(255,255,255,0.05); padding:0.5rem; border-radius:8px; text-align:center;">
+                 <div style="font-size:1.1rem; font-weight:800; color:var(--primary);">${val}</div>
+                 <div style="font-size:0.7rem; color:var(--text-muted); font-weight:600;">${label}</div>
+             </div>`;
+         });
+         html += `</div>`;
+         tContainer.innerHTML = html;
      } else {
-        const pending = AppState.tasks.filter(t => !t.completed).length;
-        tStat.textContent = pending;
-        tLabel.textContent = "Items remaining to do";
+         const sel = tSelections[0];
+         let val = '--', label = '';
+         if (sel === 'today') { val = `${AppState.tasks.filter(t => t.completed).length}/${AppState.tasks.length}`; label = 'Items completed today'; }
+         else { val = AppState.tasks.filter(t => !t.completed).length; label = 'Items remaining to do'; }
+         tContainer.innerHTML = `<h3>To-Do List</h3><div class="big-stat">${val}</div><p>${label}</p>`;
      }
 
      // Widget: Habit
      const hCfg = AppState.dashWidgets.habit;
-     const hStat = document.getElementById('dashGoalStat');
-     const hLabel = hStat.nextElementSibling;
-     if (hCfg.type === 'count') {
-        hStat.textContent = AppState.goals.length;
-        hLabel.textContent = "Total habits tracked";
-     } else if (hCfg.type === 'completed') {
-        const done = AppState.goals.filter(g => (g.type === 'binary' ? g.progress >= 1 : g.progress >= g.target)).length;
-        hStat.textContent = `${done}/${AppState.goals.length}`;
-        hLabel.textContent = "Habits completed today";
+     const hContainer = document.querySelector('.dash-card[data-view="habit"]');
+     const hSelections = hCfg.selections || [hCfg.type || 'completed'];
+     
+     const getConsistency = (g) => {
+         const done = g.type === 'binary' ? g.progress >= 1 : g.progress >= g.target;
+         const successful = (g.history ? g.history.filter(h => h.completed).length : 0) + (done ? 1 : 0);
+         const total = (g.history ? g.history.length : 0) + 1;
+         return successful/total;
+     };
+
+     if (hSelections.length > 1 || hSelections.some(s => ['top_3_streaks', 'most_consistent', 'least_consistent', 'custom'].includes(s))) {
+         let html = `<h3>Habit Progress</h3><div class="dash-stat-list" style="display:flex; flex-direction:column; gap:0.5rem; margin-top:0.5rem; width:100%;">`;
+         
+         hSelections.forEach(sel => {
+             let boxTitle = '', boxContent = '';
+             
+             if (sel === 'count') {
+                 boxTitle = 'Total Active';
+                 boxContent = `<span style="font-size:0.9rem; font-weight:800; color:var(--primary);">${AppState.goals.length}</span>`;
+             }
+             else if (sel === 'completed') {
+                 const done = AppState.goals.filter(g => (g.type === 'binary' ? g.progress >= 1 : g.progress >= g.target)).length;
+                 boxTitle = 'Done Today';
+                 boxContent = `<span style="font-size:0.9rem; font-weight:800; color:var(--primary);">${done}/${AppState.goals.length}</span>`;
+             }
+             else if (sel === 'percentage') {
+                 let totalPct = 0;
+                 AppState.goals.forEach(g => { totalPct += getConsistency(g); });
+                 const avg = AppState.goals.length > 0 ? Math.round((totalPct / AppState.goals.length) * 100) : 0;
+                 boxTitle = 'Avg Consistency';
+                 boxContent = `<span style="font-size:0.9rem; font-weight:800; color:var(--primary);">${avg}%</span>`;
+             }
+             else if (sel === 'due') {
+                 const pending = AppState.goals.filter(g => !(g.type === 'binary' ? g.progress >= 1 : g.progress >= g.target)).length;
+                 boxTitle = 'Still Due';
+                 boxContent = `<span style="font-size:0.9rem; font-weight:800; color:var(--primary);">${pending}</span>`;
+             }
+             else if (sel === 'top_3_streaks') {
+                 const top = [...AppState.goals].sort((a,b) => b.streak - a.streak).slice(0, 3);
+                 boxTitle = 'Top 3 Streaks';
+                 boxContent = `<div style="display:flex; flex-direction:column; gap:2px; text-align:right;">` + 
+                     top.map(g => `<div style="font-size:0.8rem; font-weight:700;">${g.title} <span style="color:var(--primary)">🔥 ${g.streak}</span></div>`).join('') + 
+                     `</div>`;
+             }
+             else if (sel === 'most_consistent') {
+                 const top = [...AppState.goals].sort((a,b) => getConsistency(b) - getConsistency(a)).slice(0, 3);
+                 boxTitle = 'Top 3 Consistent';
+                 boxContent = `<div style="display:flex; flex-direction:column; gap:2px; text-align:right;">` + 
+                     top.map(g => `<div style="font-size:0.8rem; font-weight:700;">${g.title} <span style="color:var(--primary)">${Math.round(getConsistency(g)*100)}%</span></div>`).join('') + 
+                     `</div>`;
+             }
+             else if (sel === 'least_consistent') {
+                 const bottom = [...AppState.goals].sort((a,b) => getConsistency(a) - getConsistency(b)).slice(0, 3);
+                 boxTitle = 'Least Consistent';
+                 boxContent = `<div style="display:flex; flex-direction:column; gap:2px; text-align:right;">` + 
+                     bottom.map(g => `<div style="font-size:0.8rem; font-weight:700;">${g.title} <span style="color:var(--primary)">${Math.round(getConsistency(g)*100)}%</span></div>`).join('') + 
+                     `</div>`;
+             }
+             else if (sel === 'custom') {
+                 const watchList = hCfg.watchList || [];
+                 const title = hCfg.watchName || 'Watchlist';
+                 const habits = AppState.goals.filter(g => watchList.includes(g.id));
+                 boxTitle = title;
+                 boxContent = `<div style="display:flex; flex-direction:column; gap:2px; text-align:right;">` + 
+                     habits.map(g => {
+                         const done = g.type === 'binary' ? g.progress >= 1 : g.progress >= g.target;
+                         return `<div style="font-size:0.8rem; font-weight:700;">${g.title} <span style="color:var(--primary)">${done ? '✅' : '⏳'}</span></div>`;
+                     }).join('') + 
+                     `</div>`;
+             }
+
+             if (boxTitle) {
+                 html += `<div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.05); padding:0.6rem 0.8rem; border-radius:12px; min-height:45px;">
+                     <span style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase;">${boxTitle}</span>
+                     ${boxContent}
+                 </div>`;
+             }
+         });
+         html += `</div>`;
+         hContainer.innerHTML = html;
      } else {
-        // Average consistency
-        let totalPct = 0;
-        AppState.goals.forEach(g => {
-           const successful = (g.history ? g.history.filter(h => h.completed).length : 0) + ((g.type==='binary' ? g.progress>=1 : g.progress>=g.target) ? 1 : 0);
-           const total = (g.history ? g.history.length : 0) + 1;
-           totalPct += (successful / total);
-        });
-        const avg = AppState.goals.length > 0 ? Math.round((totalPct / AppState.goals.length) * 100) : 0;
-        hStat.textContent = `${avg}%`;
-        hLabel.textContent = "Average consistency";
+         const sel = hSelections[0] || 'count';
+         let val = '--', label = '';
+         if (sel === 'count') { val = AppState.goals.length; label = "Total habits tracked"; }
+         else if (sel === 'completed') {
+             const done = AppState.goals.filter(g => (g.type === 'binary' ? g.progress >= 1 : g.progress >= g.target)).length;
+             val = `${done}/${AppState.goals.length}`; label = "Habits completed today";
+         } else {
+             let totalPct = 0;
+             AppState.goals.forEach(g => { totalPct += getConsistency(g); });
+             const avg = AppState.goals.length > 0 ? Math.round((totalPct / AppState.goals.length) * 100) : 0;
+             val = `${avg}%`; label = "Average consistency";
+         }
+         hContainer.innerHTML = `<h3>Habit Progress</h3><div class="big-stat">${val}</div><p>${label}</p>`;
      }
 
      // Widget: Growth
@@ -453,20 +563,23 @@ const App = {
                 let val = '--';
                 let label = '';
                 if (statKey === 'latest') { val = entries[entries.length - 1].value; label = 'Latest'; }
-                else if (statKey === 'average') { val = Math.round((entries.reduce((acc, e) => acc + e.value, 0) / entries.length) * 10) / 10; label = 'Avg'; }
-                else if (statKey === 'change' || statKey === 'changeWeek') {
-                    const last = entries[entries.length - 1].value;
-                    let fVal = entries[0].value;
-                    if (statKey === 'changeWeek') {
-                        const wAgo = new Date(); wAgo.setDate(wAgo.getDate() - 7);
-                        const en = entries.find(e => new Date(e.date) >= wAgo);
-                        if (en) fVal = en.value;
+                else if (statKey === 'average') { 
+                    val = Math.round((entries.reduce((acc, e) => acc + e.value, 0) / entries.length) * 10) / 10; 
+                    label = 'Avg (All)'; 
+                }
+                else if (statKey === 'averageWeek') {
+                    const wAgo = new Date(); wAgo.setDate(wAgo.getDate() - 7);
+                    const weekEntries = entries.filter(e => new Date(e.date) >= wAgo);
+                    if (weekEntries.length > 0) {
+                        val = Math.round((weekEntries.reduce((acc, e) => acc + e.value, 0) / weekEntries.length) * 10) / 10;
+                    } else {
+                        val = '--';
                     }
-                    const d = Math.round((last - fVal) * 10) / 10;
-                    val = (d >= 0 ? '+' : '') + d;
-                    label = statKey === 'change' ? 'Total' : 'Weekly';
+                    label = 'Avg (7d)';
                 }
                 else if (statKey === 'start') { val = entries[0].value; label = 'Start'; }
+                else if (statKey === 'high') { val = Math.max(...entries.map(e=>e.value)); label = 'High'; }
+                else if (statKey === 'low') { val = Math.min(...entries.map(e=>e.value)); label = 'Low'; }
 
                 html += `<div style="display:flex; flex-direction:column; background:rgba(255,255,255,0.05); padding:0.4rem; border-radius:8px;">
                     <span style="font-size:0.65rem; color:var(--text-muted); font-weight:700;">${label}</span>
@@ -495,11 +608,29 @@ const App = {
       if (view === 'tasks') {
           title.textContent = "To-Do List Widget";
           document.getElementById('dashSettingsTasks').style.display = 'block';
-          document.getElementById('dashTaskType').value = AppState.dashWidgets.tasks.type;
+          const selections = AppState.dashWidgets.tasks.selections || [AppState.dashWidgets.tasks.type || 'today'];
+          document.querySelectorAll('.t-dash-option').forEach(cb => {
+              cb.checked = selections.includes(cb.value);
+          });
       } else if (view === 'habit') {
           title.textContent = "Habit Tracker Widget";
           document.getElementById('dashSettingsHabit').style.display = 'block';
-          document.getElementById('dashHabitType').value = AppState.dashWidgets.habit.type;
+          const selections = AppState.dashWidgets.habit.selections || [AppState.dashWidgets.habit.type || 'completed'];
+          document.querySelectorAll('.h-dash-option').forEach(cb => {
+              cb.checked = selections.includes(cb.value);
+              cb.onchange = () => {
+                  if (cb.value === 'custom') {
+                      document.getElementById('dashHabitSelectionWrapper').style.display = cb.checked ? 'block' : 'none';
+                      if (cb.checked) this.populateDashHabitList();
+                  }
+              };
+          });
+          document.getElementById('dashHabitWatchName').value = AppState.dashWidgets.habit.watchName || 'Watchlist';
+          
+          const customCheck = [...document.querySelectorAll('.h-dash-option')].find(c => c.value === 'custom');
+          document.getElementById('dashHabitSelectionWrapper').style.display = (customCheck && customCheck.checked) ? 'block' : 'none';
+          if (customCheck && customCheck.checked) this.populateDashHabitList();
+
       } else if (view === 'growth') {
           title.textContent = "Growth Widget";
           document.getElementById('dashSettingsGrowth').style.display = 'block';
@@ -523,17 +654,32 @@ const App = {
                     <input type="checkbox" class="m-main-check" value="${mKey}" ${isSelected ? 'checked' : ''} style="display:none;">
                  </div>
                  <div class="stat-grid-compact" style="display:${isSelected ? 'grid' : 'none'};">
-                    ${this.renderStatToggle(mKey, 'latest', 'Latest', stats.includes('latest'))}
                     ${this.renderStatToggle(mKey, 'start', 'Start', stats.includes('start'))}
-                    ${this.renderStatToggle(mKey, 'average', 'Average', stats.includes('average'))}
-                    ${this.renderStatToggle(mKey, 'change', 'Total Δ', stats.includes('change'))}
-                    ${this.renderStatToggle(mKey, 'changeWeek', 'Weekly Δ', stats.includes('changeWeek'))}
+                    ${this.renderStatToggle(mKey, 'latest', 'Latest', stats.includes('latest'))}
+                    ${this.renderStatToggle(mKey, 'high', 'Highest', stats.includes('high'))}
+                    ${this.renderStatToggle(mKey, 'low', 'Lowest', stats.includes('low'))}
+                    ${this.renderStatToggle(mKey, 'average', 'Avg (Ever)', stats.includes('average'))}
+                    ${this.renderStatToggle(mKey, 'averageWeek', 'Avg (Week)', stats.includes('averageWeek'))}
                  </div>
               `;
               container.appendChild(entry);
           });
       }
       modal.classList.add('active');
+  },
+
+  populateDashHabitList() {
+      const container = document.getElementById('dashHabitList');
+      container.innerHTML = '';
+      const watched = AppState.dashWidgets.habit.watchList || [];
+      
+      AppState.goals.forEach(g => {
+          const isWatched = watched.includes(g.id);
+          const label = document.createElement('label');
+          label.className = 'check-label-btn';
+          label.innerHTML = `<input type="checkbox" class="dash-habit-watch" value="${g.id}" ${isWatched ? 'checked' : ''}> ${g.title}`;
+          container.appendChild(label);
+      });
   },
 
   renderStatToggle(metric, value, label, checked) {
@@ -784,7 +930,7 @@ const App = {
                  </div>
               </div>
               <div class="habit-stats">
-                 <div class="stat-box"><span class="stat-val">${g.streak}</span><span class="stat-label">Streak</span></div>
+                 <div class="stat-box"><span class="stat-val">🔥 ${g.streak}</span><span class="stat-label">Streak</span></div>
                  <div class="stat-box"><span class="stat-val">${consistency}%</span><span class="stat-label">Consist.</span></div>
               </div>
               <div class="habit-action">
@@ -815,7 +961,7 @@ const App = {
                  <input type="range" class="goal-progress-slider" data-id="${g.id}" min="0" max="${g.target}" value="${g.progress}">
               </div>
               <div class="habit-stats">
-                 <div class="stat-box"><span class="stat-val">${g.streak}</span><span class="stat-label">Streak</span></div>
+                 <div class="stat-box"><span class="stat-val">🔥 ${g.streak}</span><span class="stat-label">Streak</span></div>
                  <div class="stat-box"><span class="stat-val">${consistency}%</span><span class="stat-label">Consist.</span></div>
               </div>
               <div class="habit-bottom-bar" style="display:flex; justify-content:space-between; align-items:center; margin-top:0.5rem; padding-top:0.5rem; border-top:1px solid var(--border);">
@@ -835,23 +981,104 @@ const App = {
       filtered.forEach(g => {
          const card = document.createElement('div');
          card.className = 'metric-card';
-         card.innerHTML = `<div class="habit-header"><h3>${g.title} (7d)</h3></div><div style="height:150px;"><canvas id="goal-chart-${g.id}"></canvas></div>`;
+         card.innerHTML = `<div class="habit-header"><h3>${g.title} (${AppState.goalsTimeframe || '7d'})</h3></div><div style="height:200px;"><canvas id="goal-chart-${g.id}"></canvas></div>`;
          container.appendChild(card);
          
          const ctx = document.getElementById(`goal-chart-${g.id}`).getContext('2d');
-         const labels = []; const data = []; const now = new Date();
-         for(let i=6; i>=0; i--) {
+         const labels = [];
+         const actualData = [];
+         const targetData = [];
+          
+         const now = new Date();
+         let days = 7;
+         if (AppState.goalsTimeframe === 'month') days = 30;
+         else if (AppState.goalsTimeframe === '3m') days = 90;
+         else if (AppState.goalsTimeframe === 'year') days = 365;
+         
+         for(let i=days-1; i>=0; i--) {
             const d = new Date(); d.setDate(now.getDate() - i);
-            labels.push(d.toLocaleDateString(undefined, {weekday: 'short'}));
-            if (i === 0) data.push(g.type==='binary' ? (g.progress>=1 ? 1 : 0) : Math.min(1, g.progress/g.target));
-            else {
+            labels.push(d.toLocaleDateString(undefined, {weekday: 'short', month: 'short', day: 'numeric'}));
+            
+            const targetVal = g.type === 'binary' ? 1 : g.target;
+            targetData.push(targetVal);
+            
+            let val = 0;
+            if (i === 0) {
+                // Today
+                val = g.type==='binary' ? (g.progress>=1 ? 1 : 0) : g.progress;
+            } else {
                 const h = g.history?.find(x => new Date(x.date).toDateString() === d.toDateString());
-                data.push(h ? (h.completed ? 1 : Math.min(1, h.progress/h.target)) : 0);
+                if (h) {
+                    val = g.type === 'binary' ? (h.completed ? 1 : 0) : (h.progress || 0);
+                }
             }
+            actualData.push(val);
          }
+         
          new Chart(ctx, {
-            type: 'bar', data: { labels, datasets: [{ data, backgroundColor: data.map(v=>v>=1?'#10b981':'#6366f180'), borderRadius: 5 }] },
-            options: { responsive:true, maintainAspectRatio:false, scales: { y: { display:false, max:1 }, x: { grid:{display:false} } }, plugins: { legend:{display:false} } }
+            type: 'bar', 
+            data: { 
+                labels, 
+                datasets: [
+                    { 
+                        label: 'Actual', 
+                        data: actualData, 
+                        backgroundColor: actualData.map(v => {
+                           const t = g.type === 'binary' ? 1 : g.target;
+                           return v >= t ? '#10b981' : '#6366f1';
+                        }),
+                        borderRadius: 4,
+                        order: 2
+                    },
+                    {
+                        label: 'Goal',
+                        data: targetData,
+                        type: 'line',
+                        borderColor: '#ef4444',
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        fill: false,
+                        order: 1
+                    }
+                ] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                interaction: {
+                   mode: 'index',
+                   intersect: false,
+                },
+                scales: { 
+                    y: { 
+                        beginAtZero: true,
+                        grid: { display: true, color: 'rgba(0,0,0,0.05)' }
+                    }, 
+                    x: { 
+                        grid: { display: false },
+                        display: days <= 30
+                    } 
+                }, 
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += context.parsed.y;
+                                    if (g.unit) label += ' ' + g.unit;
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                } 
+            }
          });
       });
   },

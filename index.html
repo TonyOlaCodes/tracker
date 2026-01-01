@@ -149,11 +149,19 @@
                    <button class="f-tab" data-timeframe="all">All</button>
                 </div>
              </div>
-             <select id="goalCompletionFilter" class="dropdown-sl">
-                <option value="all">All Progress</option>
-                <option value="completed">Completed</option>
-                <option value="pending">In Progress</option>
-             </select>
+             <div style="display:flex; gap:0.5rem; align-items:center;">
+                 <select id="goalTimeframeSelect" class="dropdown-sl" style="display:none;">
+                     <option value="7d">Last 7 Days</option>
+                     <option value="month">Last Month</option>
+                     <option value="3m">Last 3 Months</option>
+                     <option value="year">Last Year</option>
+                 </select>
+                 <select id="goalCompletionFilter" class="dropdown-sl">
+                     <option value="all">All Progress</option>
+                     <option value="completed">Completed</option>
+                     <option value="pending">In Progress</option>
+                 </select>
+            </div>
           </div>
 
           <div id="goalList" class="goal-grid">
@@ -438,6 +446,32 @@
                 <h3>Preferences</h3>
                 <p class="setting-desc">Global units are set to <b>Euro (€)</b> and <b>Kilograms (kg)</b>.</p>
              </div>
+
+             <!-- User Guide -->
+             <div class="setting-group" style="border-top: 1px solid var(--border); padding-top: 1rem;">
+                <h3>📖 User Guide</h3>
+                <div class="user-guide-content" style="max-height: 250px; overflow-y: auto; padding-right: 5px; font-size: 0.9rem;">
+                   <div class="guide-item" style="margin-bottom: 1rem;">
+                      <h4 style="color: var(--primary); margin-bottom: 0.2rem;">🏠 Dashboard</h4>
+                      <p style="color: var(--text-muted); margin: 0;">Main overview. Edit widgets to track specific habit stats or metric trends directly.</p>
+                   </div>
+                   <div class="guide-item" style="margin-bottom: 1rem;">
+                      <h4 style="color: var(--primary); margin-bottom: 0.2rem;">✅ Tasks</h4>
+                      <p style="color: var(--text-muted); margin: 0;">Deadlines glow (red for overdue, orange for today). Filter by category or priority.</p>
+                      <span style="font-size: 0.8rem; font-style: italic; opacity: 0.8;">Example: "Renew Passport" (Personal)</span>
+                   </div>
+                   <div class="guide-item" style="margin-bottom: 1rem;">
+                      <h4 style="color: var(--primary); margin-bottom: 0.2rem;">🔥 Habits</h4>
+                      <p style="color: var(--text-muted); margin: 0;">Stick to daily, weekly, or monthly goals. Use 📈 toggle for visual historical data.</p>
+                      <span style="font-size: 0.8rem; font-style: italic; opacity: 0.8;">Example: "Meditate 10m" (Daily)</span>
+                   </div>
+                   <div class="guide-item">
+                      <h4 style="color: var(--primary); margin-bottom: 0.2rem;">📊 Growth</h4>
+                      <p style="color: var(--text-muted); margin: 0;">Quantifiable tracking. Compare Latest vs. Average vs. Start/High/Low values.</p>
+                      <span style="font-size: 0.8rem; font-style: italic; opacity: 0.8;">Example: "Weight" (kg) or "Blood Pressure"</span>
+                   </div>
+                </div>
+             </div>
           </div>
        </div>
     </div>
@@ -454,25 +488,38 @@
              
              <!-- Task Widget Settings -->
              <div id="dashSettingsTasks" class="widget-settings-group" style="display:none;">
-                <div class="form-group">
-                   <label>Display Type</label>
-                   <select id="dashTaskType">
-                      <option value="today">Completed Today</option>
-                      <option value="pending">Remaining To-Do</option>
-                   </select>
+                <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 0.5rem;">Display Options</label>
+                <div id="dashTaskOptionsList" class="sub-group" style="padding: 0.5rem; background: rgba(0,0,0,0.03); border-radius: 8px;">
+                   <label class="check-label-btn"><input type="checkbox" class="t-dash-option" value="today"> Today's Progress</label>
+                   <label class="check-label-btn"><input type="checkbox" class="t-dash-option" value="pending"> Total Pending</label>
+                   <label class="check-label-btn"><input type="checkbox" class="t-dash-option" value="due_soon"> Top 3 Due Soon</label>
+                   <label class="check-label-btn"><input type="checkbox" class="t-dash-option" value="priority"> High Priority</label>
                 </div>
              </div>
 
              <!-- Habit Widget Settings -->
              <div id="dashSettingsHabit" class="widget-settings-group" style="display:none;">
-                <div class="form-group">
-                   <label>Display Type</label>
-                   <select id="dashHabitType">
-                      <option value="count">Active Habits Count</option>
-                      <option value="completed">Completed Count</option>
-                      <option value="percentage">Average Consistency</option>
-                   </select>
+                <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 0.5rem;">Display Options</label>
+                <div id="dashHabitOptionsList" class="sub-group" style="padding: 0.5rem; background: rgba(0,0,0,0.03); border-radius: 8px; margin-bottom: 1rem;">
+                   <label class="check-label-btn"><input type="checkbox" class="h-dash-option" value="count"> Active Count</label>
+                   <label class="check-label-btn"><input type="checkbox" class="h-dash-option" value="completed"> Completed Today</label>
+                   <label class="check-label-btn"><input type="checkbox" class="h-dash-option" value="percentage"> Consistency %</label>
+                   <label class="check-label-btn"><input type="checkbox" class="h-dash-option" value="due"> Still Due Today</label>
+                   <label class="check-label-btn"><input type="checkbox" class="h-dash-option" value="top_3_streaks"> Top 3 Streaks</label>
+                   <label class="check-label-btn"><input type="checkbox" class="h-dash-option" value="most_consistent"> 3 Most Consistent</label>
+                   <label class="check-label-btn"><input type="checkbox" class="h-dash-option" value="least_consistent"> 3 Least Consistent</label>
+                   <label class="check-label-btn"><input type="checkbox" class="h-dash-option" value="custom"> Custom Watchlist</label>
                 </div>
+                <div id="dashHabitSelectionWrapper" style="display:none;">
+                    <div class="form-group">
+                       <label>Watchlist Name</label>
+                       <input type="text" id="dashHabitWatchName" placeholder="My Favorites">
+                    </div>
+                    <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 0.5rem;">Select Habits</label>
+                    <div id="dashHabitList" class="sub-group" style="max-height: 120px; overflow-y: auto; padding: 0.5rem; background: rgba(0,0,0,0.03); border-radius: 8px;">
+                       <!-- Populated by JS -->
+                    </div>
+                 </div>
              </div>
 
              <!-- Growth Widget Settings -->

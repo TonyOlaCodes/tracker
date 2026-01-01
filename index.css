@@ -1370,6 +1370,48 @@ input:checked + .slider:before {
     }
 }
 
+.check-label-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    user-select: none;
+    margin-bottom: 0.25rem;
+    width: 100%;
+}
+
+.check-label-btn:hover {
+    border-color: var(--primary);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.check-label-btn input {
+    width: 16px !important;
+    height: 16px !important;
+    cursor: pointer;
+    margin: 0 !important;
+}
+
+.dash-stat-list {
+    margin-top: 0.5rem;
+}
+
+.dash-stat-box {
+    transition: var(--transition);
+}
+
+.dash-stat-box:hover {
+    transform: scale(1.02);
+    background: rgba(255, 255, 255, 0.08) !important;
+}
+
 
 
 
