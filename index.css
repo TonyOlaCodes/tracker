@@ -1168,6 +1168,15 @@ input:checked + .slider:before {
 }
 
 /* Growth Selection UI in Widget Settings */
+#dashGrowthMetricList {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: 40vh; /* More flexible height */
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
 .growth-metric-entry {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -1175,6 +1184,7 @@ input:checked + .slider:before {
     padding: 0;
     overflow: hidden;
     transition: var(--transition);
+    flex-shrink: 0; /* Prevent squishing */
 }
 
 .metric-selector-header {

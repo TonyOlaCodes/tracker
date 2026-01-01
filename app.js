@@ -180,6 +180,9 @@ const App = {
         if (btn) this.switchView(btn.dataset.view);
      });
 
+     // Logo Home Link
+     document.querySelector('.logo').addEventListener('click', () => this.switchView('dashboard'));
+
      // Dash Edit
      document.getElementById('editDashboardBtn').addEventListener('click', () => {
          AppState.dashboardEditMode = !AppState.dashboardEditMode;
@@ -463,6 +466,8 @@ const App = {
                     val = (d >= 0 ? '+' : '') + d;
                     label = statKey === 'change' ? 'Total' : 'Weekly';
                 }
+                else if (statKey === 'start') { val = entries[0].value; label = 'Start'; }
+
                 html += `<div style="display:flex; flex-direction:column; background:rgba(255,255,255,0.05); padding:0.4rem; border-radius:8px;">
                     <span style="font-size:0.65rem; color:var(--text-muted); font-weight:700;">${label}</span>
                     <span style="font-size:0.95rem; font-weight:800;">${val}<span style="font-size:0.7rem; font-weight:600; opacity:0.7; margin-left:1px;">${m.unit||''}</span></span>
@@ -519,6 +524,7 @@ const App = {
                  </div>
                  <div class="stat-grid-compact" style="display:${isSelected ? 'grid' : 'none'};">
                     ${this.renderStatToggle(mKey, 'latest', 'Latest', stats.includes('latest'))}
+                    ${this.renderStatToggle(mKey, 'start', 'Start', stats.includes('start'))}
                     ${this.renderStatToggle(mKey, 'average', 'Average', stats.includes('average'))}
                     ${this.renderStatToggle(mKey, 'change', 'Total Δ', stats.includes('change'))}
                     ${this.renderStatToggle(mKey, 'changeWeek', 'Weekly Δ', stats.includes('changeWeek'))}
@@ -532,8 +538,8 @@ const App = {
 
   renderStatToggle(metric, value, label, checked) {
       return `
-        <label class="stat-pill-toggle ${checked ? 'stat-active' : ''}" onclick="App.handleStatToggle(this, event)">
-           <input type="checkbox" class="s-check" value="${value}" ${checked ? 'checked' : ''}>
+        <label class="stat-pill-toggle ${checked ? 'stat-active' : ''}">
+           <input type="checkbox" class="s-check" value="${value}" ${checked ? 'checked' : ''} onchange="App.handleStatChange(this)">
            <span>${label}</span>
         </label>
       `;
@@ -548,13 +554,8 @@ const App = {
       entry.querySelector('.metric-check-indicator').innerHTML = cb.checked ? '✓' : '';
   },
 
-  handleStatToggle(pill, event) {
-      const cb = pill.querySelector('input');
-      // If we didn't click the input directly, toggle it
-      if (event.target !== cb) {
-          cb.checked = !cb.checked;
-      }
-      pill.classList.toggle('stat-active', cb.checked);
+  handleStatChange(input) {
+      input.closest('.stat-pill-toggle').classList.toggle('stat-active', input.checked);
   },
 
   /**
@@ -776,16 +777,7 @@ const App = {
         if (g.type === 'binary') {
            card.innerHTML = `
               <div class="habit-header">
-                 <div>
-                    <span class="badge badge-${g.freq}">${g.freq}</span>
-                    <div>
-                     <span class="badge badge-${g.freq}">${g.freq}</span>
-                     <div>
-                     <span class="badge badge-${g.freq}">${g.freq}</span>
-                     <div class="habit-title">${g.title}</div>
-                  </div>
-                  </div>
-                 </div>
+                 <div class="habit-title">${g.title}</div>
                  <div class="card-actions">
                     <button class="icon-btn edit-habit">✏️</button>
                     <button class="icon-btn delete-habit">🗑️</button>
@@ -797,7 +789,8 @@ const App = {
               </div>
               <div class="habit-action">
                  <button class="habit-check ${done ? 'checked' : ''}" data-id="${g.id}">${done ? '✓' : ''}</button>
-                 <div class="habit-progress-container">
+                 <div class="habit-progress-container" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="badge badge-${g.freq}" style="margin:0;">${g.freq}</span>
                     <span style="font-size:0.9rem; font-weight:600;">${done ? 'Done' : 'Mark Done'}</span>
                  </div>
               </div>`;
@@ -821,12 +814,14 @@ const App = {
               <div class="slider-container">
                  <input type="range" class="goal-progress-slider" data-id="${g.id}" min="0" max="${g.target}" value="${g.progress}">
               </div>
-              <div class="habit-mini-stats">
-                 <span class="badge badge-${g.freq}">${g.freq}</span>
-                 <span>🔥 ${g.streak} day streak</span>
-                 <span>📈 ${consistency}% consistency</span>
+              <div class="habit-stats">
+                 <div class="stat-box"><span class="stat-val">${g.streak}</span><span class="stat-label">Streak</span></div>
+                 <div class="stat-box"><span class="stat-val">${consistency}%</span><span class="stat-label">Consist.</span></div>
               </div>
-              <div class="habit-bottom-progress"><div class="habit-progress-fill" style="width:${pct}%"></div></div>`;
+              <div class="habit-bottom-bar" style="display:flex; justify-content:space-between; align-items:center; margin-top:0.5rem; padding-top:0.5rem; border-top:1px solid var(--border);">
+                 <span class="badge badge-${g.freq}">${g.freq}</span>
+                 <div class="habit-bottom-progress" style="width:60%; margin:0;"><div class="habit-progress-fill" style="width:${pct}%"></div></div>
+              </div>`;
         }
         list.appendChild(card);
      });
@@ -930,12 +925,20 @@ const App = {
          const unit = document.getElementById('newMetricUnit').value;
          const target = parseFloat(document.getElementById('newMetricTarget').value) || null;
          
+         const pref = {
+             start: document.getElementById('prefStart').checked,
+             avg: document.getElementById('prefAvg').checked,
+             high: document.getElementById('prefHigh').checked,
+             low: document.getElementById('prefLow').checked
+         };
+
          if (!AppState.metrics[name]) {
-             AppState.metrics[name] = { unit, entries: [], target };
+             AppState.metrics[name] = { unit, entries: [], target, pref };
              AppState.metricOrder.push(name);
          } else {
              AppState.metrics[name].unit = unit;
              AppState.metrics[name].target = target;
+             AppState.metrics[name].pref = pref;
          }
          type = name;
      }
@@ -964,9 +967,10 @@ const App = {
 
         const lastVal = entries.length > 0 ? entries[entries.length-1].value : '--';
         
-        // Calculate A, H, L
-        let avg = '--', high = '--', low = '--';
+        // Calculate A, H, L, S
+        let avg = '--', high = '--', low = '--', start = '--';
         if (entries.length > 0) {
+            start = entries[0].value;
             const vals = entries.map(e => e.value);
             avg = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
             high = Math.max(...vals);
@@ -985,9 +989,10 @@ const App = {
                     <span style="font-size:0.8rem; color:var(--text-muted); font-weight:600;">${m.unit || ''}</span>
                     
                     <div style="display: flex; gap: 0.75rem; margin-left: auto; font-size: 0.7rem; font-weight: 700; color: var(--text-muted);">
-                        <span>A: <span style="color: var(--text-main)">${avg}</span></span>
-                        <span>H: <span style="color: var(--text-main)">${high}</span></span>
-                        <span>L: <span style="color: var(--text-main)">${low}</span></span>
+                        ${(!m.pref || m.pref.start) ? `<span title="Start Value" style="cursor:help; border-bottom:1px dotted">S: <span style="color: var(--text-main)">${start}</span></span>` : ''}
+                        ${(!m.pref || m.pref.avg) ? `<span title="Average Value" style="cursor:help; border-bottom:1px dotted">A: <span style="color: var(--text-main)">${avg}</span></span>` : ''}
+                        ${(!m.pref || m.pref.high) ? `<span title="Highest Value" style="cursor:help; border-bottom:1px dotted">H: <span style="color: var(--text-main)">${high}</span></span>` : ''}
+                        ${(!m.pref || m.pref.low) ? `<span title="Lowest Value" style="cursor:help; border-bottom:1px dotted">L: <span style="color: var(--text-main)">${low}</span></span>` : ''}
                     </div>
                  </div>
               </div>
@@ -1066,6 +1071,10 @@ const App = {
           document.getElementById('metricTypeInput').value = 'custom';
           typeGroup.style.display = 'none';
           title.textContent = AppState.editMetricKey ? "Edit Metric Type" : "New Metric Type";
+          // Reset Prefs for new
+          if (!AppState.editMetricKey) {
+              ['prefStart','prefAvg','prefHigh','prefLow'].forEach(id => document.getElementById(id).checked = true);
+          }
       } else {
           newInputs.style.display = 'none';
           dataFields.style.display = 'flex';
@@ -1086,6 +1095,16 @@ const App = {
       document.getElementById('newMetricName').disabled = true;
       document.getElementById('newMetricUnit').value = m.unit || '';
       document.getElementById('newMetricTarget').value = m.target || '';
+      // Prefs
+      if (m.pref) {
+          document.getElementById('prefStart').checked = m.pref.start;
+          document.getElementById('prefAvg').checked = m.pref.avg;
+          document.getElementById('prefHigh').checked = m.pref.high;
+          document.getElementById('prefLow').checked = m.pref.low;
+      } else {
+          // Default all checked
+          ['prefStart','prefAvg','prefHigh','prefLow'].forEach(id => document.getElementById(id).checked = true);
+      }
   },
 
   openMetricLogFor(key) {
